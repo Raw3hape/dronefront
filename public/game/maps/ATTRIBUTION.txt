@@ -1,0 +1,4 @@
+Maps baked from Natural Earth 50m Admin 0 countries, rivers, and lakes.
+Public domain. https://www.naturalearthdata.com/
+Internationally recognized state borders (Ukraine includes Crimea in this dataset).
+Dnipro and Don river centerlines from the same source.

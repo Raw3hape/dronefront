@@ -1,0 +1,10 @@
+export const WORLD_W = 2400;
+export const WORLD_H = 1350;
+export const SIM_DT = 1 / 30;
+export const MAX_DT = 0.1;
+export const MAX_DRONES = 200;
+export const MAX_SHOTS = 240;
+export const MAX_FX = 280;
+export const SITE_RADIUS = 36;
+export const HIT_EPS = 18;
+export const STOCK_CAP = 240;
