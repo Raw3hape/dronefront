@@ -3,6 +3,7 @@ import { useSession } from "@/game/session/store";
 import type { Handle } from "@/game/render/canvas-app";
 import type { World } from "@/game/sim/types";
 import { OTHER_SIDE } from "@/game/catalog/factions";
+import { assetUrl } from "@/lib/assets";
 
 export function LaunchDock({ handle }: { handle: Handle | null }) {
   const selected = useSession((s) => s.selected);
@@ -45,7 +46,7 @@ export function LaunchDock({ handle }: { handle: Handle | null }) {
                 on ? "border-border-strong bg-surface text-fg" : "border-border text-muted"
               } disabled:opacity-35`}
             >
-              <img src={`/game/sprites/drones/${id}.png`} alt="" className="size-8 shrink-0 object-contain" />
+              <img src={assetUrl(`/game/sprites/drones/${id}.png`)} alt="" className="size-8 shrink-0 object-contain" />
               <span>
                 <span className="flex items-baseline justify-between gap-2">
                   <span className="text-sm font-medium">{t.name}</span>

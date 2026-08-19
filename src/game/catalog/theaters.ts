@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assets";
 import type { SideId, SiteTypeId, TheaterId } from "./ids";
 
 export interface SiteBlueprint {
@@ -39,7 +40,7 @@ export const THEATERS: Record<TheaterId, Theater> = {
     region: "Ukraine — Russia",
     blurb:
       "All of Ukraine and the Russian border oblasts. Sites sit on real cities. The cream line is the internationally recognized state border (Natural Earth).",
-    mapSrc: "/game/maps/front.jpg",
+    mapSrc: assetUrl("/game/maps/front.jpg"),
     attribution: ATTR,
     sites: [
       s("kyiv", "hq", "west", 989, 428, "Kyiv"),
@@ -72,7 +73,7 @@ export const THEATERS: Record<TheaterId, Theater> = {
     region: "Northern border",
     blurb:
       "Zoom on the Kharkiv–Sumy–Belgorod–Kursk belt. The state border cuts the map; drones cross it on a heading, batteries sit on both sides.",
-    mapSrc: "/game/maps/north.jpg",
+    mapSrc: assetUrl("/game/maps/north.jpg"),
     attribution: ATTR,
     sites: [
       s("kharkiv", "hq", "west", 1226, 850, "Kharkiv"),
@@ -99,7 +100,7 @@ export const THEATERS: Record<TheaterId, Theater> = {
     region: "Southern belt",
     blurb:
       "Donets basin, the Azov coast, Rostov. Olive is Ukraine, rust is Russia. Sea of Azov is the dark water to the south.",
-    mapSrc: "/game/maps/south.jpg",
+    mapSrc: assetUrl("/game/maps/south.jpg"),
     attribution: ATTR,
     sites: [
       s("dnipro", "hq", "west", 356, 370, "Dnipro"),
