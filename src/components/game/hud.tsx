@@ -27,10 +27,17 @@ export function Hud({ onPause }: { onPause: () => void }) {
           <span className="text-xs text-muted">
             Yards {hud.ownStrategic}/{hud.ownTotal}
           </span>
+          <span className={`font-mono text-xs tabular-nums ${hud.ownHq < 0.4 ? "text-danger" : "text-muted"}`}>
+            HQ {Math.round(hud.ownHq * 100)}%
+          </span>
           <span className="text-xs text-danger">
             Enemy {hud.enemyStrategic}/{hud.enemyTotal}
           </span>
+          <span className="font-mono text-xs tabular-nums text-subtle">
+            {Math.round(hud.enemyHq * 100)}%
+          </span>
           <span className="text-xs text-muted">In {hud.inbound}</span>
+          <span className="text-xs text-muted">Air {hud.airborne}</span>
         </div>
         <div className="mt-1 flex flex-wrap gap-x-3 font-mono text-micro tabular-nums text-subtle">
           {STOCK_ORDER.map((id) => (

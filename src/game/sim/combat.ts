@@ -1,4 +1,5 @@
 import { DRONE_TYPES, OTHER_SIDE, SITE_TYPES } from "@/game/catalog";
+import { MARK_BONUS } from "./constants";
 import { dist2 } from "./spatial";
 import { burst } from "./fx";
 import type { DroneState, World } from "./types";
@@ -8,7 +9,13 @@ function killDrone(world: World, d: DroneState, by: DroneState["side"]): void {
   d.life = "dead";
   world.stats[by].killed += 1;
   world.stats[d.side].lost += 1;
-  world.events.push({ kind: "kill", side: d.side, x: d.x, y: d.y, label: DRONE_TYPES[d.typeId].name });
+  world.events.push({
+    kind: "kill",
+    side: d.side,
+    x: d.x,
+    y: d.y,
+    label: DRONE_TYPES[d.typeId].names[d.side],
+  });
   burst(world, d.x, d.y, "burst", d.side, 10);
 }
 
@@ -43,10 +50,9 @@ export function tickCombat(world: World, dt: number): void {
         const r = type.radius + DRONE_TYPES[prey.typeId].radius;
         if (dist2(d.x, d.y, prey.x, prey.y) < r * r + 36) {
           prey.hp -= type.interceptDmg;
-          d.hp -= 4;
           burst(world, d.x, d.y, "spark", d.side, 5);
           if (prey.hp <= 0) killDrone(world, prey, d.side);
-          if (d.hp <= 0) killDrone(world, d, prey.side);
+          killDrone(world, d, prey.side);
         }
       }
     }
@@ -69,7 +75,8 @@ export function tickCombat(world: World, dt: number): void {
       burst(world, d.x, d.y, "flash", d.side, 5);
       continue;
     }
-    const mark = site.markedUntil > world.time ? 1.4 : 1;
+    if (type.role === "intercept") continue;
+    const mark = site.markedUntil > world.time ? MARK_BONUS : 1;
     const dmg = type.payload * mark;
     site.hp -= dmg;
     world.stats[d.side].damage += dmg;

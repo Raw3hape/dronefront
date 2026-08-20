@@ -1,9 +1,9 @@
-import { SIM_DT } from "./constants";
 import { tickEconomy } from "./economy";
 import { tickSpawn } from "./spawn";
 import { tickFlight } from "./flight";
 import { tickInterceptAcquire } from "./intercept";
 import { tickAa } from "./aa-system";
+import { tickEw } from "./ew-system";
 import { tickCombat } from "./combat";
 import { tickFx } from "./fx";
 import { tickWin } from "./win";
@@ -22,13 +22,13 @@ export function tickWorld(world: World, dt: number): void {
   tickEconomy(world, dt);
   tickBot(world, dt);
   tickSpawn(world, dt);
+  tickEw(world, dt);
   tickFlight(world, dt);
   tickInterceptAcquire(world);
   tickAa(world, dt);
   tickCombat(world, dt);
   tickFx(world, dt);
   tickWin(world);
-  if (world.events.length > 40) world.events.splice(0, world.events.length - 24);
 }
 
 export function snapHud(world: World): HudSnap {
@@ -55,6 +55,8 @@ export function snapHud(world: World): HudSnap {
     if (d.side === me) airborne += 1;
     else inbound += 1;
   }
+  const ownHq = world.sites.find((s) => s.side === me && s.typeId === "hq");
+  const enemyHq = world.sites.find((s) => s.side === them && s.typeId === "hq");
   return {
     time: world.time,
     phase: world.phase,
@@ -66,8 +68,8 @@ export function snapHud(world: World): HudSnap {
     enemyTotal: enemyT,
     inbound,
     airborne,
+    ownHq: ownHq && ownHq.maxHp > 0 ? ownHq.hp / ownHq.maxHp : 0,
+    enemyHq: enemyHq && enemyHq.maxHp > 0 ? enemyHq.hp / enemyHq.maxHp : 0,
     stats: { ...world.stats[me] },
   };
 }
-
-export { SIM_DT };

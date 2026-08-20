@@ -35,6 +35,7 @@ export function GameView(props: {
     useSession.getState().setResult(null);
     useSession.getState().setUi("play");
     useSession.getState().setHud(null);
+    useSession.getState().setDockTab("sortie");
     const h = startGame(canvas, {
       theaterId: props.theaterId,
       playerSide: props.playerSide,

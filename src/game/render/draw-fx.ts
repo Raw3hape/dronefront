@@ -1,4 +1,5 @@
 import { FACTIONS } from "@/game/catalog";
+import { locLine } from "@/game/catalog/frontline";
 import { WORLD_H, WORLD_W } from "@/game/sim/constants";
 import type { World } from "@/game/sim/types";
 import { worldToScreen, type Camera } from "./camera";
@@ -85,11 +86,24 @@ export function drawMinimap(
     ctx.fillRect(x, y, mw, mh);
   }
   ctx.globalAlpha = 1;
+  const sx = mw / WORLD_W;
+  const sy = mh / WORLD_H;
+  const loc = locLine(world.theaterId);
+  if (loc.length > 1) {
+    ctx.beginPath();
+    loc.forEach((p, i) => {
+      const px = x + p.x * sx;
+      const py = y + p.y * sy;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.strokeStyle = "rgba(232,214,168,0.85)";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
   ctx.strokeStyle = "rgba(230,228,216,0.22)";
   ctx.lineWidth = 1;
   ctx.strokeRect(x, y, mw, mh);
-  const sx = mw / WORLD_W;
-  const sy = mh / WORLD_H;
   for (const site of world.sites) {
     ctx.fillStyle = !site.alive ? "rgba(230,228,216,0.25)" : site.side === "west" ? "#6d8eae" : "#c56a52";
     const r = site.typeId === "hq" ? 2.4 : 1.6;
@@ -97,7 +111,7 @@ export function drawMinimap(
   }
   for (const d of world.drones) {
     if (!d.live) continue;
-    ctx.fillStyle = d.side === "west" ? "#9bb6cc" : "#e09a86";
+    ctx.fillStyle = d.jammed ? "#b8a8d4" : d.side === "west" ? "#9bb6cc" : "#e09a86";
     ctx.fillRect(x + d.x * sx - 1, y + d.y * sy - 1, 2, 2);
   }
   ctx.strokeStyle = "rgba(230,228,216,0.55)";

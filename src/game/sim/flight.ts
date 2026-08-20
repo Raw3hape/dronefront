@@ -1,6 +1,7 @@
-import { DRONE_TYPES } from "@/game/catalog";
-import { angleTo, inWorld, turnToward } from "./spatial";
+import { DRONE_TYPES, SITE_TYPES } from "@/game/catalog";
+import { angleTo, dist2, inWorld, turnToward } from "./spatial";
 import { nextRng } from "./rng";
+import { burst } from "./fx";
 import type { World } from "./types";
 
 export function tickFlight(world: World, dt: number): void {
@@ -27,14 +28,40 @@ export function tickFlight(world: World, dt: number): void {
     const desired = angleTo(d.x, d.y, tx, ty);
     d.heading = turnToward(d.heading, desired, type.turnRate * dt);
     const wobble = (nextRng(world) - 0.5) * 18;
-    const sp = type.speed;
+    let sp = type.speed;
+    if (d.jammed) {
+      let slow = 0.62;
+      for (const site of world.sites) {
+        if (!site.alive || site.side === d.side) continue;
+        const st = SITE_TYPES[site.typeId];
+        if (!st.isEw) continue;
+        if (dist2(site.x, site.y, d.x, d.y) > st.ewRange * st.ewRange) continue;
+        slow = Math.min(slow, st.ewSlow + (1 - type.ewProfile) * 0.3);
+      }
+      sp *= slow;
+    }
     d.vx = Math.cos(d.heading) * sp;
     d.vy = Math.sin(d.heading) * sp + Math.sin(d.bob) * 8 + wobble * 0.15;
+    const x0 = d.x;
+    const y0 = d.y;
     d.x += d.vx * dt;
     d.y += d.vy * dt;
-    if (!inWorld(d.x, d.y) && d.age > 1.2) {
+    let burn = Math.hypot(d.x - x0, d.y - y0);
+    if (d.jammed) burn *= 1.4;
+    d.fuel -= burn;
+    if (d.fuel <= 0 || (!inWorld(d.x, d.y) && d.age > 1.2)) {
+      d.fuel = 0;
       d.live = false;
       d.life = "dead";
+      world.stats[d.side].lost += 1;
+      world.events.push({
+        kind: "bingo",
+        side: d.side,
+        x: d.x,
+        y: d.y,
+        label: type.names[d.side],
+      });
+      burst(world, d.x, d.y, "smoke", d.side, 6);
     }
   }
 }

@@ -1,4 +1,4 @@
-import type { DroneRole, DroneTypeId, StockId } from "./ids";
+import type { DroneRole, DroneTypeId, SideId, StockId } from "./ids";
 
 export interface StockCost {
   parts: number;
@@ -9,7 +9,7 @@ export interface StockCost {
 
 export interface DroneType {
   id: DroneTypeId;
-  name: string;
+  names: Record<SideId, string>;
   callsign: string;
   role: DroneRole;
   blurb: string;
@@ -19,7 +19,9 @@ export interface DroneType {
   hp: number;
   radius: number;
   payload: number;
+  range: number;
   aaProfile: number;
+  ewProfile: number;
   aggro: number;
   interceptDmg: number;
   sprite: string;
@@ -27,126 +29,189 @@ export interface DroneType {
   hotkey: string;
 }
 
+/** Game-scale km per world unit. HUD km = catalog range × this. */
+export const KM_PER_UNIT = 0.5;
+
+export function rangeKm(units: number): number {
+  return Math.round(units * KM_PER_UNIT);
+}
+
 export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
   fpv: {
     id: "fpv",
-    name: "FPV",
+    names: { west: "FPV", east: "FPV" },
     callsign: "Wasp",
     role: "strike",
-    blurb: "Fast kamikaze. Guns struggle to track it.",
+    blurb: "Radio FPV. Short hop — needs a pad near the LoC.",
     cost: { parts: 4, fuel: 2, warheads: 1, electronics: 0 },
     speed: 268,
     turnRate: 6.2,
     hp: 9,
     radius: 6,
-    payload: 34,
+    payload: 12,
+    range: 460,
     aaProfile: 0.38,
+    ewProfile: 0.92,
     aggro: 0.55,
     interceptDmg: 7,
     sprite: "fpv",
     drawSize: 22,
     hotkey: "1",
   },
+  fiber: {
+    id: "fiber",
+    names: { west: "FPV fiber", east: "FPV ВОГ" },
+    callsign: "Thread",
+    role: "strike",
+    blurb: "Fiber-optic FPV. Jam-proof, short spool.",
+    cost: { parts: 6, fuel: 2, warheads: 1, electronics: 3 },
+    speed: 188,
+    turnRate: 5.4,
+    hp: 10,
+    radius: 6,
+    payload: 14,
+    range: 400,
+    aaProfile: 0.42,
+    ewProfile: 0.06,
+    aggro: 0.5,
+    interceptDmg: 7,
+    sprite: "fiber",
+    drawSize: 24,
+    hotkey: "2",
+  },
   loiter: {
     id: "loiter",
-    name: "Loiter",
-    callsign: "Moth",
+    names: { west: "AN-196 Liutyi", east: "Geran-2" },
+    callsign: "One-way",
     role: "strike",
-    blurb: "Cheap wing. Slow, heavy warhead, easy prey.",
-    cost: { parts: 7, fuel: 6, warheads: 3, electronics: 0 },
+    blurb: "Deep strike. Reaches enemy HQ from yours.",
+    cost: { parts: 8, fuel: 7, warheads: 3, electronics: 1 },
     speed: 96,
     turnRate: 1.8,
-    hp: 22,
+    hp: 34,
     radius: 10,
-    payload: 78,
+    payload: 24,
+    range: 2000,
     aaProfile: 0.82,
+    ewProfile: 0.38,
     aggro: 1,
     interceptDmg: 10,
     sprite: "loiter",
-    drawSize: 34,
-    hotkey: "2",
+    drawSize: 36,
+    hotkey: "3",
+  },
+  lancet: {
+    id: "lancet",
+    names: { west: "Warmate", east: "Lancet-3" },
+    callsign: "Needle",
+    role: "strike",
+    blurb: "Loitering munition. From a forward pad, not from Kyiv.",
+    cost: { parts: 7, fuel: 4, warheads: 2, electronics: 3 },
+    speed: 154,
+    turnRate: 3.6,
+    hp: 13,
+    radius: 7,
+    payload: 18,
+    range: 680,
+    aaProfile: 0.44,
+    ewProfile: 0.34,
+    aggro: 0.7,
+    interceptDmg: 9,
+    sprite: "lancet",
+    drawSize: 28,
+    hotkey: "4",
   },
   interceptor: {
     id: "interceptor",
-    name: "Hunter",
+    names: { west: "Sting", east: "Okhotnik" },
     callsign: "Kite",
     role: "intercept",
-    blurb: "Hunts incoming drones. Assign a bandit or a hunt zone.",
+    blurb: "Interceptor FPV. CAP around your pads, then bingo.",
     cost: { parts: 6, fuel: 4, warheads: 0, electronics: 2 },
     speed: 290,
     turnRate: 5.8,
     hp: 14,
     radius: 7,
     payload: 0,
+    range: 520,
     aaProfile: 0.5,
+    ewProfile: 0.55,
     aggro: 0.35,
-    interceptDmg: 22,
+    interceptDmg: 38,
     sprite: "interceptor",
     drawSize: 28,
-    hotkey: "3",
+    hotkey: "5",
   },
   recon: {
     id: "recon",
-    name: "Scout",
+    names: { west: "Leleka-100", east: "Orlan-10" },
     callsign: "Owl",
     role: "recon",
-    blurb: "Marks a site. Marked targets take extra damage.",
+    blurb: "Marks a yard. Medium reach — LoC from HQ, not Rostov.",
     cost: { parts: 5, fuel: 5, warheads: 0, electronics: 3 },
     speed: 170,
     turnRate: 3.4,
     hp: 11,
     radius: 8,
-    payload: 4,
+    payload: 3,
+    range: 900,
     aaProfile: 0.48,
+    ewProfile: 0.58,
     aggro: 0.4,
     interceptDmg: 5,
     sprite: "recon",
     drawSize: 32,
-    hotkey: "4",
+    hotkey: "6",
   },
   bomber: {
     id: "bomber",
-    name: "Heavy",
-    callsign: "Ox",
+    names: { west: "Vampire", east: "Molniya-2" },
+    callsign: "Hex",
     role: "strike",
-    blurb: "Twin-boom strike UAV. Expensive. Cracks hardened yards.",
+    blurb: "Heavy UAS. Crosses the LoC from HQ, not the deep rear.",
     cost: { parts: 14, fuel: 10, warheads: 6, electronics: 2 },
-    speed: 118,
-    turnRate: 2.1,
-    hp: 40,
+    speed: 108,
+    turnRate: 2.2,
+    hp: 36,
     radius: 12,
-    payload: 150,
-    aaProfile: 0.7,
+    payload: 48,
+    range: 800,
+    aaProfile: 0.68,
+    ewProfile: 0.62,
     aggro: 0.85,
-    interceptDmg: 16,
+    interceptDmg: 14,
     sprite: "bomber",
     drawSize: 40,
-    hotkey: "5",
+    hotkey: "7",
   },
   decoy: {
     id: "decoy",
-    name: "Decoy",
+    names: { west: "RAM II", east: "Gerbera" },
     callsign: "Crow",
     role: "decoy",
-    blurb: "Draws batteries. Pair with a real strike package.",
+    blurb: "Cheap decoy. Escorts Geran / Liutyi. Pulls ПВО.",
     cost: { parts: 3, fuel: 3, warheads: 0, electronics: 1 },
     speed: 150,
     turnRate: 3.8,
     hp: 6,
     radius: 7,
     payload: 0,
+    range: 2000,
     aaProfile: 0.9,
+    ewProfile: 0.5,
     aggro: 1.45,
     interceptDmg: 3,
     sprite: "decoy",
     drawSize: 24,
-    hotkey: "6",
+    hotkey: "8",
   },
 };
 
 export const DRONE_ORDER: DroneTypeId[] = [
   "fpv",
+  "fiber",
   "loiter",
+  "lancet",
   "interceptor",
   "recon",
   "bomber",
@@ -162,6 +227,10 @@ export const STOCK_LABEL: Record<StockId, string> = {
   electronics: "Comms",
 };
 
+export function droneName(id: DroneTypeId, side: SideId): string {
+  return DRONE_TYPES[id].names[side];
+}
+
 export function canAfford(have: StockCost, cost: StockCost): boolean {
   return (
     have.parts >= cost.parts &&
@@ -176,4 +245,11 @@ export function payCost(have: StockCost, cost: StockCost): void {
   have.fuel -= cost.fuel;
   have.warheads -= cost.warheads;
   have.electronics -= cost.electronics;
+}
+
+export function refundCost(have: StockCost, cost: StockCost): void {
+  have.parts += cost.parts;
+  have.fuel += cost.fuel;
+  have.warheads += cost.warheads;
+  have.electronics += cost.electronics;
 }

@@ -14,10 +14,10 @@ export function ResultScreen({ onRematch }: { onRematch: () => void }) {
       <div className="panel-in w-full max-w-md rounded-xl border border-border bg-elevated p-6 text-center">
         <p className="font-mono text-2xs tracking-[0.2em] text-muted uppercase">{FACTIONS[side].name}</p>
         <h2 className={`font-display mt-2 text-4xl ${won ? "text-ok" : "text-danger"}`}>
-          {won ? "Line broken" : "Yards lost"}
+          {won ? "Line broken" : "Command lost"}
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-muted">
-          {won ? "Every enemy strategic yard is down." : "Your strategic grid is gone."}
+          {won ? "Enemy HQ is down. Their grid goes dark." : "Your HQ is gone. Place ПВО next time — then push."}
         </p>
         {hud && (
           <p className="mt-4 font-mono text-xs tabular-nums text-muted">

@@ -15,11 +15,14 @@ function poolDrones(): DroneState[] {
     heading: 0,
     hp: 0,
     maxHp: 0,
+    fuel: 0,
+    maxFuel: 0,
     targetSiteId: null,
     targetDroneId: null,
     age: 0,
     life: "dead",
     bob: 0,
+    jammed: false,
   }));
 }
 
@@ -74,8 +77,9 @@ export function createWorld(cfg: MatchConfig): World {
     };
   });
   const start = { ...diff.start };
+  const seed = cfg.seed ?? ((Math.random() * 1e9) | 0);
   return {
-    seed: cfg.seed ?? (Math.random() * 1e9) | 0,
+    seed,
     time: 0,
     tick: 0,
     theaterId: cfg.theaterId,
@@ -97,8 +101,9 @@ export function createWorld(cfg: MatchConfig): World {
       west: { launched: 0, killed: 0, lost: 0, damage: 0 },
       east: { launched: 0, killed: 0, lost: 0, damage: 0 },
     },
-    botCd: 2.4,
-    rng: cfg.seed ?? 1337,
+    botCd: diff.botLead,
+    botBuildCd: diff.botBuildLead,
+    rng: seed,
   };
 }
 

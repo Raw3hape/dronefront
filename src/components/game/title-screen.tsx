@@ -43,7 +43,7 @@ export function TitleScreen() {
             DRONEFRONT
           </h1>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-muted sm:text-base">
-            Real borders. Queue strike packages across the state line and hold your yards.
+            Guard the HQ with ПВО, then strike. FPV needs a pad on the LoC; Geran / Liutyi fly the long way.
           </p>
         </div>
 
@@ -149,13 +149,13 @@ export function TitleScreen() {
                       <span className="text-muted">
                         {THEATERS[r.theaterId]?.name ?? r.theaterId} · {FACTIONS[r.side]?.short}
                       </span>
-                      <span className={r.won ? "text-ok" : "text-danger"}>{r.won ? "Hold" : "Lost"}</span>
+                      <span className={r.won ? "text-ok" : "text-danger"}>{r.won ? "Win" : "Lost"}</span>
                     </li>
                   ))}
                 </ul>
               )}
               <p className="mt-4 font-mono text-micro leading-relaxed text-subtle">
-                1–6 drones · Q package · Space pause · Natural Earth, public domain
+                1–8 drones · B fortify · Q package · Space pause
               </p>
             </div>
           </aside>

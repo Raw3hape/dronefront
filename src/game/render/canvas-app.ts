@@ -1,5 +1,8 @@
-import { DRONE_TYPES, SITE_TYPES } from "@/game/catalog";
-import { createWorld, enqueue, snapHud, tickWorld } from "@/game/sim";
+import { DRONE_ORDER, DRONE_TYPES, SITE_TYPES } from "@/game/catalog";
+import { createWorld, enqueue, placeSite, snapHud, tickWorld } from "@/game/sim";
+import { canPlace } from "@/game/sim/build";
+import { inRange } from "@/game/sim/range";
+import { pickInbound } from "@/game/ai/targeting";
 import { MAX_DT, SIM_DT } from "@/game/sim/constants";
 import { dist2 } from "@/game/sim/spatial";
 import type { MatchConfig, World } from "@/game/sim/types";
@@ -9,7 +12,8 @@ import { pushRun } from "@/game/save/persist";
 import { createPointer, pinchDistance } from "@/game/input/pointer";
 import { fitCamera, pan, screenToWorld, zoomAt, type Camera } from "./camera";
 import { drawMap } from "./draw-map";
-import { drawDrones, drawSites } from "./draw-entities";
+import { drawDrones, drawGhost, drawSites } from "./draw-entities";
+import { drawPadRanges } from "./draw-range";
 import { drawFx, drawMinimap, drawShots } from "./draw-fx";
 import { loadAtlas, type Atlas } from "./sprites";
 
@@ -37,19 +41,27 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
   let viewW = 1;
   let viewH = 1;
   let ended = false;
+  let cursor = { x: 0, y: 0, on: false };
 
   function resize(): void {
     const r = canvas.getBoundingClientRect();
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    viewW = r.width;
-    viewH = r.height;
+    const nextW = Math.max(1, r.width);
+    const nextH = Math.max(1, r.height);
+    const boot = viewW <= 1 || viewH <= 1;
+    viewW = nextW;
+    viewH = nextH;
     canvas.width = Math.max(1, Math.floor(r.width * dpr));
     canvas.height = Math.max(1, Math.floor(r.height * dpr));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (cam.zoom < 0.05) cam = fitCamera(viewW, viewH);
+    if (boot || cam.zoom < 0.05) {
+      const focus = world.sites.find((s) => s.side === world.playerSide && s.typeId === "hq");
+      cam = fitCamera(viewW, viewH, focus ? { x: focus.x, y: focus.y } : undefined);
+    }
   }
   resize();
-  cam = fitCamera(viewW, viewH);
+  const hq = world.sites.find((s) => s.side === world.playerSide && s.typeId === "hq");
+  cam = fitCamera(viewW, viewH, hq ? { x: hq.x, y: hq.y } : undefined);
   const ro = new ResizeObserver(resize);
   ro.observe(canvas);
 
@@ -57,6 +69,7 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
     let best = null as (typeof world.sites)[number] | null;
     let bestD = 48 * 48;
     for (const s of world.sites) {
+      if (!s.alive) continue;
       const rad = SITE_TYPES[s.typeId].radius + 10;
       const d = dist2(wx, wy, s.x, s.y);
       if (d < rad * rad && d < bestD) {
@@ -69,7 +82,8 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
 
   function hitDrone(wx: number, wy: number) {
     let best = null as (typeof world.drones)[number] | null;
-    let bestD = 28 * 28;
+    const hitR = Math.max(40, 24 / cam.zoom);
+    let bestD = hitR * hitR;
     for (const d of world.drones) {
       if (!d.live) continue;
       const dd = dist2(wx, wy, d.x, d.y);
@@ -85,16 +99,22 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
     const session = useSession.getState();
     const typeId = session.selected;
     if (!typeId || world.phase !== "play") return;
+    const site = world.sites.find((s) => s.id === siteId);
+    if (!site || !site.alive || site.side === world.playerSide) return;
+    const type = DRONE_TYPES[typeId];
+    if (type.role === "intercept") return;
     const side = world.playerSide;
     const orders = session.packageMode
       ? [
+          { typeId, delay: 0.55 },
           { typeId: "decoy" as const, delay: 0 },
-          { typeId: "fpv" as const, delay: 0.35 },
-          { typeId, delay: 0.7 },
+          { typeId: "fpv" as const, delay: 0.28 },
         ]
       : [{ typeId, delay: 0 }];
     let any = false;
     for (const o of orders) {
+      if (DRONE_TYPES[o.typeId].role === "intercept") continue;
+      if (!inRange(world, side, o.typeId, site.x, site.y)) continue;
       const ok = enqueue(world, {
         side,
         typeId: o.typeId,
@@ -110,19 +130,27 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
   function onClick(sx: number, sy: number): void {
     const wpt = screenToWorld(cam, viewW, viewH, sx, sy);
     const session = useSession.getState();
+    if (world.phase !== "play") return;
+    if (session.dockTab === "fortify" && session.buildType) {
+      if (placeSite(world, world.playerSide, session.buildType, wpt.x, wpt.y)) sfxLaunch();
+      return;
+    }
     const typeId = session.selected;
-    if (!typeId || world.phase !== "play") return;
+    if (!typeId) return;
     const type = DRONE_TYPES[typeId];
     if (type.role === "intercept") {
       const d = hitDrone(wpt.x, wpt.y);
-      enqueue(world, {
+      const clicked = d && d.side !== world.playerSide ? d.id : null;
+      const prey = clicked ?? pickInbound(world, world.playerSide);
+      if (prey == null) return;
+      const ok = enqueue(world, {
         side: world.playerSide,
         typeId,
         targetSiteId: null,
-        targetDroneId: d && d.side !== world.playerSide ? d.id : null,
+        targetDroneId: prey,
         delay: 0,
       });
-      sfxLaunch();
+      if (ok) sfxLaunch();
       return;
     }
     const site = hitSite(wpt.x, wpt.y);
@@ -149,6 +177,7 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
     const p = localXY(e);
     bus.pointers.set(e.pointerId, p);
     const wpt = screenToWorld(cam, viewW, viewH, p.x, p.y);
+    cursor = { x: wpt.x, y: wpt.y, on: true };
     const site = hitSite(wpt.x, wpt.y);
     useSession.getState().setHover(site?.id ?? null);
     const pinch = pinchDistance(bus);
@@ -160,7 +189,7 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
     if (bus.pointers.size === 1 && (e.buttons & 1 || e.pointerType === "touch")) {
       const dx = p.x - bus.lastX;
       const dy = p.y - bus.lastY;
-      if (Math.hypot(dx, dy) > 3) bus.dragging = true;
+      if (Math.hypot(dx, dy) > (e.pointerType === "touch" ? 14 : 5)) bus.dragging = true;
       if (bus.dragging) pan(cam, dx, dy, viewW, viewH);
       bus.lastX = p.x;
       bus.lastY = p.y;
@@ -189,16 +218,22 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
         useSession.getState().setUi("play");
       }
     }
-    const map: Record<string, (typeof DRONE_TYPES)[keyof typeof DRONE_TYPES]["id"]> = {
+    const map: Record<string, (typeof DRONE_ORDER)[number]> = {
       Digit1: "fpv",
-      Digit2: "loiter",
-      Digit3: "interceptor",
-      Digit4: "recon",
-      Digit5: "bomber",
-      Digit6: "decoy",
+      Digit2: "fiber",
+      Digit3: "loiter",
+      Digit4: "lancet",
+      Digit5: "interceptor",
+      Digit6: "recon",
+      Digit7: "bomber",
+      Digit8: "decoy",
     };
     const id = map[e.code];
     if (id) useSession.getState().setSelected(id);
+    if (e.code === "KeyB") {
+      const tab = useSession.getState().dockTab;
+      useSession.getState().setDockTab(tab === "fortify" ? "sortie" : "fortify");
+    }
     if (e.code === "KeyQ") useSession.getState().togglePackage();
     if (e.code === "KeyM") useSession.getState().toggleMute();
     if (e.code === "Escape") {
@@ -221,19 +256,20 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
 
   function frame(now: number): void {
     if (!running) return;
-    const raw = Math.min(MAX_DT, (now - last) / 1000);
+    const rawDt = Math.min(MAX_DT, (now - last) / 1000);
     last = now;
     const paused = useSession.getState().ui === "paused" || world.phase === "paused";
     if (!paused && world.phase === "play") {
-      acc += raw;
+      acc += rawDt;
       while (acc >= SIM_DT) {
         const evN = world.events.length;
         tickWorld(world, SIM_DT);
         for (let i = evN; i < world.events.length; i++) {
           const ev = world.events[i]!;
           if (ev.kind === "aa") sfxAa();
-          if (ev.kind === "hit" || ev.kind === "site") sfxHit();
+          if (ev.kind === "hit" || ev.kind === "site" || ev.kind === "bingo") sfxHit();
         }
+        if (world.events.length > 40) world.events.splice(0, world.events.length - 24);
         acc -= SIM_DT;
       }
     }
@@ -252,7 +288,7 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
         at: Date.now(),
       });
     }
-    hudT += raw;
+    hudT += rawDt;
     if (hudT > 0.12) {
       hudT = 0;
       useSession.getState().setHud(snapHud(world));
@@ -261,9 +297,18 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
     ctx.fillRect(0, 0, viewW, viewH);
     if (atlas) {
       drawMap(ctx, world, atlas, cam, viewW, viewH);
-      const selected = useSession.getState().selected;
-      const aaOn = selected === "recon" || selected === "decoy";
-      drawSites(ctx, world, atlas, cam, viewW, viewH, useSession.getState().hoverSiteId, aaOn);
+      const session = useSession.getState();
+      const showRanges = session.dockTab === "fortify" || session.selected === "recon";
+      drawSites(ctx, world, atlas, cam, viewW, viewH, session.hoverSiteId, showRanges);
+      if (session.selected && (session.dockTab === "sortie" || session.buildType === "airfield")) {
+        drawPadRanges(ctx, world, cam, viewW, viewH, world.playerSide, session.selected, session.hoverSiteId);
+      }
+      if (session.dockTab === "fortify" && session.buildType && cursor.on) {
+        const ok = canPlace(world, world.playerSide, session.buildType, cursor.x, cursor.y) === null;
+        const padRange =
+          session.buildType === "airfield" && session.selected ? DRONE_TYPES[session.selected].range : 0;
+        drawGhost(ctx, atlas, cam, viewW, viewH, cursor.x, cursor.y, session.buildType, ok, padRange);
+      }
       drawDrones(ctx, world, atlas, cam, viewW, viewH);
       drawShots(ctx, world, atlas, cam, viewW, viewH);
       drawFx(ctx, world, atlas, cam, viewW, viewH);

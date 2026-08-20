@@ -1,7 +1,27 @@
 import { assetUrl } from "@/lib/assets";
 
-const DRONE_KEYS = ["fpv", "loiter", "interceptor", "recon", "bomber", "decoy"] as const;
-const SITE_KEYS = ["factory", "refinery", "power", "airfield", "ammo", "hq", "aa", "fuel", "rail"] as const;
+const DRONE_KEYS = [
+  "fpv",
+  "fiber",
+  "loiter",
+  "lancet",
+  "interceptor",
+  "recon",
+  "bomber",
+  "decoy",
+] as const;
+const SITE_KEYS = [
+  "factory",
+  "refinery",
+  "power",
+  "airfield",
+  "ammo",
+  "hq",
+  "aa",
+  "ew",
+  "fuel",
+  "rail",
+] as const;
 const MAP_KEYS = ["front", "north", "south"] as const;
 
 export interface Atlas {

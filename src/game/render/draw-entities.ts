@@ -1,4 +1,5 @@
 import { DRONE_TYPES, FACTIONS, SITE_TYPES } from "@/game/catalog";
+import type { SiteTypeId } from "@/game/catalog/ids";
 import type { World } from "@/game/sim/types";
 import { worldToScreen, type Camera } from "./camera";
 import type { Atlas } from "./sprites";
@@ -11,7 +12,7 @@ export function drawSites(
   viewW: number,
   viewH: number,
   hoverId: string | null,
-  selectedAa: boolean,
+  showRanges: boolean,
 ): void {
   for (const site of world.sites) {
     const t = SITE_TYPES[site.typeId];
@@ -19,12 +20,15 @@ export function drawSites(
     const size = Math.max(18, t.drawSize * cam.zoom * 0.82);
     const tint = site.side === "west" ? "rgba(109,142,174,0.55)" : "rgba(197,106,82,0.55)";
     const ring = site.side === "west" ? "rgba(109,142,174,0.9)" : "rgba(197,106,82,0.9)";
-    if (t.isAa && (selectedAa || site.markedUntil > world.time || hoverId === site.id)) {
+    const range = t.isAa ? t.aaRange : t.isEw ? t.ewRange : 0;
+    if (range && (showRanges || hoverId === site.id || site.markedUntil > world.time)) {
       ctx.beginPath();
-      ctx.arc(p.x, p.y, t.aaRange * cam.zoom, 0, Math.PI * 2);
-      ctx.strokeStyle = site.side === "west" ? "rgba(109,142,174,0.28)" : "rgba(197,106,82,0.28)";
+      ctx.arc(p.x, p.y, range * cam.zoom, 0, Math.PI * 2);
+      ctx.strokeStyle = t.isEw ? "rgba(168,150,210,0.35)" : site.side === "west" ? "rgba(109,142,174,0.28)" : "rgba(197,106,82,0.28)";
+      ctx.setLineDash(t.isEw ? [5, 4] : []);
       ctx.lineWidth = 1;
       ctx.stroke();
+      ctx.setLineDash([]);
     }
     ctx.save();
     ctx.fillStyle = site.alive ? tint : "rgba(40,38,34,0.55)";
@@ -67,6 +71,42 @@ export function drawSites(
   }
 }
 
+export function drawGhost(
+  ctx: CanvasRenderingContext2D,
+  atlas: Atlas,
+  cam: Camera,
+  viewW: number,
+  viewH: number,
+  x: number,
+  y: number,
+  typeId: SiteTypeId,
+  ok: boolean,
+  padRange = 0,
+): void {
+  const t = SITE_TYPES[typeId];
+  const p = worldToScreen(cam, viewW, viewH, x, y);
+  const size = Math.max(18, t.drawSize * cam.zoom * 0.82);
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  const range = t.isAa ? t.aaRange : t.isEw ? t.ewRange : t.isAirfield ? padRange : 0;
+  if (range) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, range * cam.zoom, 0, Math.PI * 2);
+    ctx.strokeStyle = ok ? "rgba(141,163,122,0.45)" : "rgba(196,92,74,0.5)";
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.strokeStyle = ok ? "rgba(141,163,122,0.9)" : "rgba(196,92,74,0.9)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, size * 0.42, 0, Math.PI * 2);
+  ctx.stroke();
+  const img = atlas.sites[t.sprite];
+  if (img) ctx.drawImage(img, p.x - size / 2, p.y - size / 2, size, size);
+  ctx.restore();
+}
+
 export function drawDrones(
   ctx: CanvasRenderingContext2D,
   world: World,
@@ -81,8 +121,9 @@ export function drawDrones(
     const p = worldToScreen(cam, viewW, viewH, d.x, d.y);
     const size = Math.max(16, type.drawSize * cam.zoom);
     const img = atlas.drones[type.sprite];
+    const low = d.maxFuel > 0 && d.fuel / d.maxFuel < 0.22;
     ctx.save();
-    ctx.strokeStyle = FACTIONS[d.side].trail;
+    ctx.strokeStyle = d.jammed ? "rgba(168,150,210,0.8)" : FACTIONS[d.side].trail;
     ctx.globalAlpha = 0.5;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -92,7 +133,7 @@ export function drawDrones(
     ctx.globalAlpha = 1;
     ctx.translate(p.x, p.y);
     ctx.rotate(d.heading + Math.PI / 2);
-    ctx.fillStyle = FACTIONS[d.side].tint;
+    ctx.fillStyle = d.jammed ? "rgba(168,150,210,0.55)" : low ? "rgba(196,92,74,0.6)" : FACTIONS[d.side].tint;
     ctx.globalAlpha = 0.5;
     ctx.beginPath();
     ctx.ellipse(0, 0, size * 0.32, size * 0.46, 0, 0, Math.PI * 2);
@@ -108,5 +149,11 @@ export function drawDrones(
       ctx.fill();
     }
     ctx.restore();
+    const bw = size * 0.7;
+    const bh = Math.max(2, 2.4 * cam.zoom);
+    ctx.fillStyle = "rgba(10,10,11,0.7)";
+    ctx.fillRect(p.x - bw / 2, p.y + size * 0.42, bw, bh);
+    ctx.fillStyle = low ? "#c45c4a" : "#e8d6a8";
+    ctx.fillRect(p.x - bw / 2, p.y + size * 0.42, bw * Math.max(0, d.fuel / Math.max(1, d.maxFuel)), bh);
   }
 }

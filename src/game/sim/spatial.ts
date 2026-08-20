@@ -1,13 +1,5 @@
 import { WORLD_H, WORLD_W } from "./constants";
 
-const CELL = 140;
-
-export function cellKey(x: number, y: number): number {
-  const cx = Math.max(0, Math.min(Math.floor(x / CELL), Math.ceil(WORLD_W / CELL)));
-  const cy = Math.max(0, Math.min(Math.floor(y / CELL), Math.ceil(WORLD_H / CELL)));
-  return cy * 64 + cx;
-}
-
 export function dist2(ax: number, ay: number, bx: number, by: number): number {
   const dx = ax - bx;
   const dy = ay - by;

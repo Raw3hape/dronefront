@@ -1,9 +1,9 @@
 import { create } from "zustand";
-import type { DifficultyId, DroneTypeId, SideId, TheaterId } from "@/game/catalog/ids";
+import type { DifficultyId, DockTab, DroneTypeId, SideId, SiteTypeId, TheaterId } from "@/game/catalog/ids";
 import type { HudSnap } from "@/game/sim/types";
 import { DIFFICULTY_ORDER, DRONE_ORDER, THEATER_ORDER } from "@/game/catalog";
 
-export type UiPhase = "menu" | "brief" | "play" | "paused" | "result";
+export type UiPhase = "menu" | "play" | "paused" | "result";
 
 export interface SessionState {
   ui: UiPhase;
@@ -11,6 +11,8 @@ export interface SessionState {
   playerSide: SideId;
   difficultyId: DifficultyId;
   selected: DroneTypeId | null;
+  buildType: SiteTypeId | null;
+  dockTab: DockTab;
   packageMode: boolean;
   muted: boolean;
   hud: HudSnap | null;
@@ -21,6 +23,8 @@ export interface SessionState {
   setSide: (s: SideId) => void;
   setDiff: (d: DifficultyId) => void;
   setSelected: (id: DroneTypeId | null) => void;
+  setBuildType: (id: SiteTypeId | null) => void;
+  setDockTab: (tab: DockTab) => void;
   togglePackage: () => void;
   toggleMute: () => void;
   setHud: (h: HudSnap | null) => void;
@@ -54,6 +58,8 @@ export const useSession = create<SessionState>((set, get) => ({
   playerSide: "west",
   difficultyId: "operator",
   selected: DRONE_ORDER[0],
+  buildType: null,
+  dockTab: "sortie",
   packageMode: false,
   muted: false,
   hud: null,
@@ -73,7 +79,13 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ difficultyId });
     persist(get);
   },
-  setSelected: (selected) => set({ selected }),
+  setSelected: (selected) => set({ selected, dockTab: "sortie", buildType: null }),
+  setBuildType: (buildType) => set({ buildType, dockTab: "fortify" }),
+  setDockTab: (dockTab) =>
+    set({
+      dockTab,
+      buildType: dockTab === "fortify" ? get().buildType ?? "aa" : null,
+    }),
   togglePackage: () => set({ packageMode: !get().packageMode }),
   toggleMute: () => {
     set({ muted: !get().muted });

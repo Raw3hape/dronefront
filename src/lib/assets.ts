@@ -1,4 +1,4 @@
-const PREFIX = import.meta.env.VERCEL
+const PREFIX = import.meta.env?.VERCEL
   ? "https://raw.githubusercontent.com/Raw3hape/dronefront/main/public"
   : "";
 

@@ -15,29 +15,42 @@ Do not invent parallel types. Import from `@/game/catalog` and `@/game/sim/types
   geometric epsilons.
 - Theaters, factions, drone types, site types, difficulties: frozen objects.
 - World is a plain serializable object (`World` in `types.ts`).
+- LoC is lon/lat in `catalog/frontline.ts`, projected per theater bbox.
 
 ## Sides
 
 - `west` | `east`. Player picks one. The other is the bot.
-- West occupies x < WORLD_W/2, east the rest. Sites never straddle the river.
+- Own ground = `sideAt(theater, x, y)` vs the Aug 2026 LoC, not WORLD_W/2.
 
 ## Victory
 
-- Win: every enemy **strategic** site is dead (`strategic: true` in site catalog).
-- Lose: every player strategic site is dead.
-- AA batteries are not strategic.
+- Win: enemy **HQ** is dead.
+- Lose: player HQ is dead.
+- Yards (factory, ammo, …) feed the war; ПВО / РЭБ are not victory targets.
+
+## Build
+
+- Matches seed only HQ (also an airfield). Player and bot place the rest.
+- Place on own side of the LoC, `MIN_SITE_GAP`, `MAX_SITES_PER_SIDE`.
+- `placeSite` in `sim/build.ts`. Bot uses theater `slots`.
 
 ## Launch
 
-- Player selects a drone type, then a target site (strike/recon/decoy/bomber)
-  or an incoming drone / empty hunt (interceptor).
+- Player selects a drone type, then a target site or a hunt (interceptor).
+- Interceptor needs a live inbound in range. Empty-map tap hunts the nearest. No HQ suicide hops.
 - Multiple queued orders allowed (`LaunchOrder[]`).
 - Spawn at nearest living airfield of that side; else HQ; else first living site.
+- Catalog `range` is max path in world units. Spawn `fuel = range`.
+- Launch blocked if nearest pad → target > range × 0.9 (`sim/range.ts`).
+- Bingo crash at fuel 0. Jammed radio drones burn 1.4×.
+- AA shot ttl = aaRange / aaSpeed (missiles die on the battery ring).
+- Player ПВО uses catalog stats; `botAccuracy` / `aaMul` apply only to the bot.
+- HUD km = range × `KM_PER_UNIT` (0.5).
 
 ## Systems order each tick
 
-input consume → economy → bot AI → spawn queue → flight → intercept acquire →
-AA fire → projectiles → collisions/damage → fx age → win check → event drain
+economy → bot AI → spawn queue → EW jam → flight → intercept acquire →
+AA fire → projectiles/damage → fx age → win check → event drain
 
 ## Files
 

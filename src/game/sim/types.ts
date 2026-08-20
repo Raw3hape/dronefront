@@ -2,8 +2,8 @@ import type { DifficultyId, DroneTypeId, SideId, SiteTypeId, TheaterId } from "@
 import type { StockCost } from "@/game/catalog/drones";
 
 export type Phase = "play" | "paused" | "won" | "lost";
-export type DroneLife = "cruise" | "terminal" | "hunt" | "dead";
-export type ShotKind = "aa" | "air";
+export type DroneLife = "cruise" | "hunt" | "dead";
+export type ShotKind = "aa";
 export type FxKind = "burst" | "smoke" | "spark" | "flash" | "ring";
 
 export interface SiteState {
@@ -32,11 +32,14 @@ export interface DroneState {
   heading: number;
   hp: number;
   maxHp: number;
+  fuel: number;
+  maxFuel: number;
   targetSiteId: string | null;
   targetDroneId: number | null;
   age: number;
   life: DroneLife;
   bob: number;
+  jammed: boolean;
 }
 
 export interface ShotState {
@@ -75,7 +78,7 @@ export interface LaunchOrder {
 }
 
 export interface SimEvent {
-  kind: "hit" | "kill" | "site" | "launch" | "mark" | "aa";
+  kind: "hit" | "kill" | "site" | "launch" | "mark" | "aa" | "jam" | "build" | "bingo";
   side: SideId;
   x: number;
   y: number;
@@ -107,6 +110,7 @@ export interface World {
   events: SimEvent[];
   stats: Record<SideId, MatchStats>;
   botCd: number;
+  botBuildCd: number;
   rng: number;
 }
 
@@ -128,5 +132,7 @@ export interface HudSnap {
   enemyTotal: number;
   inbound: number;
   airborne: number;
+  ownHq: number;
+  enemyHq: number;
   stats: MatchStats;
 }
