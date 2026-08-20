@@ -161,7 +161,7 @@ def main() -> None:
     for n in drones:
         one(n, PUB_D / f"{n}.png", 256)
     sites = {
-        "mog": 280, "shorad": 280, "aa": 280, "longsam": 300, "ew": 256,
+        "mog": 280, "shorad": 280, "aa": 280, "longsam": 300, "ew": 256, "radar": 256,
         "hq": 256, "factory": 256, "airfield": 256, "refinery": 256,
         "power": 256, "ammo": 256, "fuel": 256, "rail": 256,
     }

@@ -40,6 +40,7 @@ try {
   await page.waitForSelector("canvas", { timeout: 20000 });
   await page.waitForTimeout(1200);
   await page.screenshot({ path: checkedOutputPath(`${outDir}/play-north.png`, ["/workspace"]) });
+  assert((await page.getByText("Enemy fog").count()) > 0, "enemy yards start fogged");
 
   const recon = page.locator('img[src*="/game/sprites/drones/recon.png"]');
   assert((await recon.count()) > 0, "Leleka sprite in sortie dock");
@@ -50,6 +51,7 @@ try {
   const mog = page.locator('img[src*="/game/sprites/sites/mog.png"]');
   assert((await mog.count()) > 0, "МОГ sprite in fortify dock");
   assert((await page.getByText("МОГ", { exact: true }).count()) > 0, "МОГ label");
+  assert((await page.getByText("Radar", { exact: true }).count()) > 0, "Radar in fortify");
   await mog.first().screenshot({ path: checkedOutputPath(`${outDir}/sprite-mog.png`, ["/workspace"]) });
   await page.screenshot({ path: checkedOutputPath(`${outDir}/play-fortify.png`, ["/workspace"]) });
 

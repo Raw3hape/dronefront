@@ -46,8 +46,21 @@ Catalog-only. `aa` is the medium SAM. All types carry `value` (strike priority),
 - `shorad` — Pantsir/Gepard class, mid ring, mobile, missiles.
 - `aa` — medium SAM, slow relocate.
 - `longsam` — Patriot/S-300 class, long ring, fixed (`mobile: false`).
+- `radar` — air picture, `radarRange` (same band as medium SAM). Mobile. Enemy drones
+  are drawn only inside a living friendly radar ring.
 
-`BUILD_ORDER`: mog, shorad, aa, longsam, ew, then yards.
+`BUILD_ORDER`: mog, shorad, radar, aa, longsam, ew, then yards.
+
+## Intel
+
+- Enemy **sites** start unknown (`spotted[side] = false`). Own sites are known.
+- A recon drone (`spotRange` in the catalog) flying within that radius permanently
+  reveals the yard. Revealed yards stay on the map and can be struck.
+- Recon is waypointed: tap the map to launch, tap the bird then the map to steer
+  (same click pattern as relocating ПВО). It loiters at dest until bingo — it does
+  not kamikaze.
+- Strike `enqueue` requires `siteKnown`. Interceptor `pickInbound` requires `droneKnown`.
+- HUD / minimap / dock hide unknown enemy yards and air contacts.
 
 ## Relocate
 
@@ -76,7 +89,7 @@ Catalog-only. `aa` is the medium SAM. All types carry `value` (strike priority),
 
 ## Systems order each tick
 
-economy → relocate → bot AI → spawn queue → EW jam → flight → intercept acquire →
+economy → relocate → bot AI → spawn queue → EW jam → flight → intel → intercept acquire →
 AA fire → projectiles/damage → fx age → win check → event drain
 
 ## Files

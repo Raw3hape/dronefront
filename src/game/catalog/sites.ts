@@ -9,6 +9,7 @@ export interface SiteType {
   strategic: boolean;
   isAa: boolean;
   isEw: boolean;
+  isRadar: boolean;
   isAirfield: boolean;
   placeable: boolean;
   radius: number;
@@ -22,6 +23,7 @@ export interface SiteType {
   aaSpeed: number;
   aaOrdnance: AaOrdnance;
   aaBurst: number;
+  radarRange: number;
   ewRange: number;
   ewSlow: number;
   ewJam: number;
@@ -42,6 +44,7 @@ const QUIET: Pick<
   | "aaSpeed"
   | "aaOrdnance"
   | "aaBurst"
+  | "radarRange"
   | "ewRange"
   | "ewSlow"
   | "ewJam"
@@ -49,7 +52,7 @@ const QUIET: Pick<
   | "relocateSpeed"
 > = {
   aaRange: 0, aaRate: 0, aaDamage: 0, aaSpeed: 0, aaOrdnance: "missile", aaBurst: 1,
-  ewRange: 0, ewSlow: 0, ewJam: 0, mobile: false, relocateSpeed: 0,
+  radarRange: 0, ewRange: 0, ewSlow: 0, ewJam: 0, mobile: false, relocateSpeed: 0,
 };
 
 type Spec = Omit<SiteType, keyof typeof QUIET> & Partial<typeof QUIET>;
@@ -64,7 +67,7 @@ function yard(
   return def({
     id, name, blurb, hp, radius, drawSize, produce, build, value,
     sprite: extra.sprite ?? id, strategic: extra.strategic ?? true, isAa: false,
-    isEw: extra.isEw ?? false, isAirfield: extra.isAirfield ?? false, placeable: extra.placeable ?? true,
+    isEw: extra.isEw ?? false, isRadar: extra.isRadar ?? false, isAirfield: extra.isAirfield ?? false, placeable: extra.placeable ?? true,
     ...extra,
   });
 }
@@ -77,7 +80,7 @@ function battery(
 ): SiteType {
   return def({
     id, name, blurb, hp, build, mobile, relocateSpeed, value,
-    sprite: extra.sprite ?? id, strategic: false, isAa: true, isEw: false, isAirfield: false,
+    sprite: extra.sprite ?? id, strategic: false, isAa: true, isEw: false, isRadar: false, isAirfield: false,
     placeable: true, produce: {}, radius: extra.radius ?? 32, drawSize: extra.drawSize ?? 58,
     aaRange, aaRate, aaDamage, aaSpeed, ...extra,
   });
@@ -123,8 +126,11 @@ export const SITE_TYPES: Record<SiteTypeId, SiteType> = {
   ew: yard("ew", "РЭБ", "Jammer. Slows and drops radio FPV. Fiber walks through it.", 135, 30, 56, {}, {
     parts: 14, fuel: 4, warheads: 0, electronics: 16,
   }, 0.8, { strategic: false, isEw: true, ewRange: 190, ewSlow: 0.52, ewJam: 0.28 }),
+  radar: yard("radar", "Radar", "Air picture. Enemy drones stay dark until they enter this ring.", 110, 30, 56, {}, {
+    parts: 12, fuel: 3, warheads: 0, electronics: 14,
+  }, 0.7, { strategic: false, isRadar: true, radarRange: 240, mobile: true, relocateSpeed: 48, drawSize: 52 }),
 };
 
 export const BUILD_ORDER: SiteTypeId[] = [
-  "mog", "shorad", "aa", "longsam", "ew", "factory", "airfield", "refinery", "ammo", "fuel", "power", "rail",
+  "mog", "shorad", "radar", "aa", "longsam", "ew", "factory", "airfield", "refinery", "ammo", "fuel", "power", "rail",
 ];

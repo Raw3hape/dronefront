@@ -32,8 +32,9 @@ export function livingEnemySite(world: World, side: SideId): SiteState | null {
 
 export function aimOf(
   world: World,
-  order: Pick<LaunchOrder, "side" | "targetSiteId" | "targetDroneId">,
+  order: Pick<LaunchOrder, "side" | "targetSiteId" | "targetDroneId" | "wx" | "wy">,
 ): { x: number; y: number } {
+  if (order.wx != null && order.wy != null) return { x: order.wx, y: order.wy };
   if (order.targetSiteId) {
     const t = world.sites.find((s) => s.id === order.targetSiteId && s.alive);
     if (t) return { x: t.x, y: t.y };

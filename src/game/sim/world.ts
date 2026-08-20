@@ -1,5 +1,6 @@
 import { DIFFICULTIES, SITE_TYPES, THEATERS, projectOwned } from "@/game/catalog";
 import { MAX_DRONES, MAX_FX, MAX_SHOTS, STOCK_CAP } from "./constants";
+import { spottedMap } from "./intel";
 import type { DroneState, FxState, MatchConfig, ShotState, SiteState, World } from "./types";
 
 function poolDrones(): DroneState[] {
@@ -19,6 +20,8 @@ function poolDrones(): DroneState[] {
     maxFuel: 0,
     targetSiteId: null,
     targetDroneId: null,
+    destX: 0,
+    destY: 0,
     age: 0,
     life: "dead",
     bob: 0,
@@ -76,6 +79,7 @@ export function createWorld(cfg: MatchConfig): World {
       maxHp: t.hp,
       fireCd: 0,
       markedUntil: 0,
+      spotted: spottedMap(bp.side),
       alive: true,
     };
   });

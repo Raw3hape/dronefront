@@ -27,6 +27,7 @@ export interface DroneType {
   sprite: string;
   drawSize: number;
   hotkey: string;
+  spotRange: number;
 }
 
 /** Game-scale km per world unit. HUD km = catalog range × this. */
@@ -57,6 +58,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     sprite: "fpv",
     drawSize: 22,
     hotkey: "1",
+    spotRange: 0,
   },
   fiber: {
     id: "fiber",
@@ -78,6 +80,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     sprite: "fiber",
     drawSize: 24,
     hotkey: "2",
+    spotRange: 0,
   },
   loiter: {
     id: "loiter",
@@ -99,6 +102,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     sprite: "loiter",
     drawSize: 36,
     hotkey: "3",
+    spotRange: 0,
   },
   lancet: {
     id: "lancet",
@@ -120,6 +124,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     sprite: "lancet",
     drawSize: 28,
     hotkey: "4",
+    spotRange: 0,
   },
   interceptor: {
     id: "interceptor",
@@ -141,20 +146,21 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     sprite: "interceptor",
     drawSize: 28,
     hotkey: "5",
+    spotRange: 0,
   },
   recon: {
     id: "recon",
     names: { west: "Leleka-100", east: "Orlan-10" },
     callsign: "Owl",
     role: "recon",
-    blurb: "Marks a yard. Medium reach — LoC from HQ, not Rostov.",
+    blurb: "Tap the map to fly a scout. Yards it overflies stay on the map.",
     cost: { parts: 5, fuel: 5, warheads: 0, electronics: 3 },
     speed: 99,
     turnRate: 3.4,
     hp: 11,
     radius: 8,
     payload: 3,
-    range: 900,
+    range: 2000,
     aaProfile: 0.48,
     ewProfile: 0.58,
     aggro: 0.4,
@@ -162,6 +168,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     sprite: "recon",
     drawSize: 32,
     hotkey: "6",
+    spotRange: 140,
   },
   bomber: {
     id: "bomber",
@@ -183,6 +190,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     sprite: "bomber",
     drawSize: 40,
     hotkey: "7",
+    spotRange: 0,
   },
   decoy: {
     id: "decoy",
@@ -204,6 +212,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     sprite: "decoy",
     drawSize: 24,
     hotkey: "8",
+    spotRange: 0,
   },
 };
 

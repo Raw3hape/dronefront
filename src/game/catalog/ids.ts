@@ -21,6 +21,7 @@ export type SiteTypeId =
   | "shorad"
   | "longsam"
   | "ew"
+  | "radar"
   | "rail";
 export type TheaterId = "front" | "north" | "south";
 export type DifficultyId = "recruit" | "operator" | "veteran";

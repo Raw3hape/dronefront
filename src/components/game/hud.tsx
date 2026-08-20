@@ -31,11 +31,13 @@ export function Hud({ onPause }: { onPause: () => void }) {
             HQ {Math.round(hud.ownHq * 100)}%
           </span>
           <span className="text-xs text-danger">
-            Enemy {hud.enemyStrategic}/{hud.enemyTotal}
+            {hud.enemyTotal > 0 ? `Enemy ${hud.enemyStrategic}/${hud.enemyTotal}` : "Enemy fog"}
           </span>
-          <span className="font-mono text-xs tabular-nums text-subtle">
-            {Math.round(hud.enemyHq * 100)}%
-          </span>
+          {hud.enemyHq >= 0 ? (
+            <span className="font-mono text-xs tabular-nums text-subtle">{Math.round(hud.enemyHq * 100)}%</span>
+          ) : (
+            <span className="font-mono text-xs tabular-nums text-subtle">—</span>
+          )}
           <span className="text-xs text-muted">In {hud.inbound}</span>
           <span className="text-xs text-muted">Air {hud.airborne}</span>
         </div>

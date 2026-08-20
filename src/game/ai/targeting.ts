@@ -3,6 +3,7 @@ import type { DroneTypeId, SideId, SiteTypeId } from "@/game/catalog/ids";
 import { dist2 } from "@/game/sim/spatial";
 import { nextRng } from "@/game/sim/rng";
 import { inRange } from "@/game/sim/range";
+import { droneKnown, siteKnown } from "@/game/sim/intel";
 import type { SiteState, World } from "@/game/sim/types";
 
 export function pickStrikeTarget(world: World, side: SideId, typeId?: DroneTypeId): SiteState | null {
@@ -11,6 +12,7 @@ export function pickStrikeTarget(world: World, side: SideId, typeId?: DroneTypeI
   let score = -1;
   for (const s of world.sites) {
     if (!s.alive || s.side !== enemy) continue;
+    if (!siteKnown(s, side)) continue;
     if (typeId && !inRange(world, side, typeId, s.x, s.y)) continue;
     const t = SITE_TYPES[s.typeId];
     const w = t.value * (0.4 + s.hp / s.maxHp);
@@ -32,6 +34,7 @@ export function pickInbound(world: World, side: SideId): number | null {
   const oy = hq?.y ?? 0;
   for (const d of world.drones) {
     if (!d.live || d.side === side) continue;
+    if (!droneKnown(world, d, side)) continue;
     if (DRONE_TYPES[d.typeId].role === "intercept") continue;
     if (!inRange(world, side, "interceptor", d.x, d.y)) continue;
     const dd = dist2(d.x, d.y, ox, oy);
@@ -41,6 +44,13 @@ export function pickInbound(world: World, side: SideId): number | null {
     }
   }
   return best;
+}
+
+export function pickScoutAim(world: World, side: SideId): { x: number; y: number } | null {
+  const hidden = world.sites.filter((s) => s.alive && s.side !== side && !siteKnown(s, side));
+  if (hidden.length === 0) return null;
+  const pick = hidden[Math.floor(nextRng(world) * hidden.length)]!;
+  return { x: pick.x, y: pick.y };
 }
 
 function pickMix(world: World, inbound: number): DroneTypeId {
@@ -56,8 +66,10 @@ function pickMix(world: World, inbound: number): DroneTypeId {
 }
 
 export function pickStrikeType(world: World, side: SideId, inbound: number): DroneTypeId {
+  if (!pickStrikeTarget(world, side)) return "recon";
   const mix = pickMix(world, inbound);
   if (mix === "interceptor") return mix;
+  if (mix === "recon") return mix;
   if (pickStrikeTarget(world, side, mix)) return mix;
   return "loiter";
 }
@@ -65,6 +77,7 @@ export function pickStrikeType(world: World, side: SideId, inbound: number): Dro
 export function pickBuildType(world: World, side: SideId): SiteTypeId {
   let aa = 0;
   let ew = 0;
+  let radars = 0;
   let yards = 0;
   let pads = 0;
   let factory = 0;
@@ -73,6 +86,7 @@ export function pickBuildType(world: World, side: SideId): SiteTypeId {
     if (!s.alive || s.side !== side) continue;
     const t = SITE_TYPES[s.typeId];
     if (t.isAa) aa += 1;
+    else if (t.isRadar) radars += 1;
     else if (s.typeId === "ew") ew += 1;
     else yards += 1;
     if (s.typeId === "factory") factory += 1;
@@ -83,6 +97,7 @@ export function pickBuildType(world: World, side: SideId): SiteTypeId {
   for (const d of world.drones) if (d.live && d.side !== side) inbound += 1;
   const r = nextRng(world);
   if (aa < 1) return "mog";
+  if (radars < 1) return "radar";
   if (inbound >= 2 && aa < 2) return "aa";
   if (factory < 1) return "factory";
   if (ew < 1) return "ew";
@@ -95,6 +110,6 @@ export function pickBuildType(world: World, side: SideId): SiteTypeId {
   const short = pickStrikeTarget(world, side, "fpv") === null;
   if (short && pads < 3 && r < 0.45) return "airfield";
   if (r < 0.4) return longsams < 1 ? "longsam" : "aa";
-  if (r < 0.65) return "ew";
+  if (r < 0.65) return radars < 2 ? "radar" : "ew";
   return r < 0.85 ? "power" : "rail";
 }

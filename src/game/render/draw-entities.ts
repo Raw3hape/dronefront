@@ -1,6 +1,7 @@
 import { DRONE_TYPES, FACTIONS, SITE_TYPES } from "@/game/catalog";
 import type { SiteTypeId } from "@/game/catalog/ids";
 import { siteMoving } from "@/game/sim/build";
+import { droneKnown, siteKnown } from "@/game/sim/intel";
 import type { World } from "@/game/sim/types";
 import { worldToScreen, type Camera } from "./camera";
 import type { Atlas } from "./sprites";
@@ -16,17 +17,24 @@ export function drawSites(
   showRanges: boolean,
 ): void {
   for (const site of world.sites) {
+    if (!siteKnown(site, world.playerSide)) continue;
     const t = SITE_TYPES[site.typeId];
     const p = worldToScreen(cam, viewW, viewH, site.x, site.y);
     const size = Math.max(18, t.drawSize * cam.zoom * 0.82);
     const tint = site.side === "west" ? "rgba(109,142,174,0.55)" : "rgba(197,106,82,0.55)";
     const ring = site.side === "west" ? "rgba(109,142,174,0.9)" : "rgba(197,106,82,0.9)";
-    const range = t.isAa ? t.aaRange : t.isEw ? t.ewRange : 0;
+    const range = t.isAa ? t.aaRange : t.isEw ? t.ewRange : t.isRadar ? t.radarRange : 0;
     if (range && (showRanges || hoverId === site.id || site.markedUntil > world.time)) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, range * cam.zoom, 0, Math.PI * 2);
-      ctx.strokeStyle = t.isEw ? "rgba(168,150,210,0.35)" : site.side === "west" ? "rgba(109,142,174,0.28)" : "rgba(197,106,82,0.28)";
-      ctx.setLineDash(t.isEw ? [5, 4] : []);
+      ctx.strokeStyle = t.isEw
+        ? "rgba(168,150,210,0.35)"
+        : t.isRadar
+          ? "rgba(141,163,122,0.4)"
+          : site.side === "west"
+            ? "rgba(109,142,174,0.28)"
+            : "rgba(197,106,82,0.28)";
+      ctx.setLineDash(t.isEw || t.isRadar ? [5, 4] : []);
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.setLineDash([]);
@@ -105,7 +113,7 @@ export function drawGhost(
   const size = Math.max(18, t.drawSize * cam.zoom * 0.82);
   ctx.save();
   ctx.globalAlpha = 0.55;
-  const range = t.isAa ? t.aaRange : t.isEw ? t.ewRange : t.isAirfield ? padRange : 0;
+  const range = t.isAa ? t.aaRange : t.isEw ? t.ewRange : t.isRadar ? t.radarRange : t.isAirfield ? padRange : 0;
   if (range) {
     ctx.beginPath();
     ctx.arc(p.x, p.y, range * cam.zoom, 0, Math.PI * 2);
@@ -134,11 +142,25 @@ export function drawDrones(
 ): void {
   for (const d of world.drones) {
     if (!d.live) continue;
+    if (!droneKnown(world, d, world.playerSide)) continue;
     const type = DRONE_TYPES[d.typeId];
     const p = worldToScreen(cam, viewW, viewH, d.x, d.y);
     const size = Math.max(16, type.drawSize * cam.zoom);
     const img = atlas.drones[type.sprite];
     const low = d.maxFuel > 0 && d.fuel / d.maxFuel < 0.22;
+    if (type.role === "recon" && Math.hypot(d.destX - d.x, d.destY - d.y) > 18) {
+      const dest = worldToScreen(cam, viewW, viewH, d.destX, d.destY);
+      ctx.save();
+      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = FACTIONS[d.side].trail;
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(dest.x, dest.y);
+      ctx.arc(dest.x, dest.y, 5 * cam.zoom, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
     ctx.save();
     ctx.strokeStyle = d.jammed ? "rgba(168,150,210,0.8)" : FACTIONS[d.side].trail;
     ctx.globalAlpha = 0.5;

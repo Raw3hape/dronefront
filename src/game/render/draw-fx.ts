@@ -1,6 +1,7 @@
 import { FACTIONS } from "@/game/catalog";
 import { locLine } from "@/game/catalog/frontline";
 import { WORLD_H, WORLD_W } from "@/game/sim/constants";
+import { droneKnown, siteKnown } from "@/game/sim/intel";
 import type { World } from "@/game/sim/types";
 import { worldToScreen, type Camera } from "./camera";
 import type { Atlas } from "./sprites";
@@ -140,12 +141,14 @@ export function drawMinimap(
   ctx.lineWidth = 1;
   ctx.strokeRect(x, y, mw, mh);
   for (const site of world.sites) {
+    if (!siteKnown(site, world.playerSide)) continue;
     ctx.fillStyle = !site.alive ? "rgba(230,228,216,0.25)" : site.side === "west" ? "#6d8eae" : "#c56a52";
     const r = site.typeId === "hq" ? 2.4 : 1.6;
     ctx.fillRect(x + site.x * sx - r, y + site.y * sy - r, r * 2, r * 2);
   }
   for (const d of world.drones) {
     if (!d.live) continue;
+    if (!droneKnown(world, d, world.playerSide)) continue;
     ctx.fillStyle = d.jammed ? "#b8a8d4" : d.side === "west" ? "#9bb6cc" : "#e09a86";
     ctx.fillRect(x + d.x * sx - 1, y + d.y * sy - 1, 2, 2);
   }

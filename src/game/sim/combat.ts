@@ -62,21 +62,13 @@ export function tickCombat(world: World, dt: number): void {
     if (!site || !site.alive) continue;
     const reach = SITE_TYPES[site.typeId].radius + type.radius;
     if (dist2(d.x, d.y, site.x, site.y) > reach * reach) continue;
-    if (type.role === "recon") {
-      site.markedUntil = world.time + 28;
-      world.events.push({ kind: "mark", side: d.side, x: site.x, y: site.y, label: site.name });
-      d.live = false;
-      d.life = "dead";
-      burst(world, site.x, site.y, "ring", d.side, 6);
-      continue;
-    }
+    if (type.role === "recon" || type.role === "intercept") continue;
     if (type.role === "decoy") {
       d.live = false;
       d.life = "dead";
       burst(world, d.x, d.y, "flash", d.side, 5);
       continue;
     }
-    if (type.role === "intercept") continue;
     const mark = site.markedUntil > world.time ? MARK_BONUS : 1;
     const dmg = type.payload * mark;
     site.hp -= dmg;

@@ -11,6 +11,7 @@ import { useSession } from "@/game/session/store";
 import type { Handle } from "@/game/render/canvas-app";
 import type { World } from "@/game/sim/types";
 import { siteInRange } from "@/game/sim/range";
+import { siteKnown } from "@/game/sim/intel";
 import { OTHER_SIDE } from "@/game/catalog/factions";
 import { assetUrl } from "@/lib/assets";
 
@@ -28,9 +29,10 @@ export function LaunchDock({ handle }: { handle: Handle | null }) {
   const world = handle?.world as World | undefined;
   const enemy = world ? OTHER_SIDE[world.playerSide] : "east";
   const stocks = hud?.stocks;
-  const sites = world?.sites.filter((s) => s.side === enemy && s.alive) ?? [];
+  const sites = world?.sites.filter((s) => s.side === enemy && s.alive && siteKnown(s, playerSide)) ?? [];
   const sortie = dockTab === "sortie";
   const hunt = Boolean(selected && DRONE_TYPES[selected].role === "intercept");
+  const scout = Boolean(selected && DRONE_TYPES[selected].role === "recon");
   const reachCount =
     world && selected && !hunt ? sites.filter((s) => siteInRange(world, world.playerSide, selected, s.id)).length : 0;
 
@@ -43,7 +45,9 @@ export function LaunchDock({ handle }: { handle: Handle | null }) {
       {sortie ? (
         <div className="flex gap-2 overflow-x-auto px-3 pt-2">
           {hunt ? (
-            <p className="py-2 font-mono text-micro text-subtle">Tap an inbound drone — or tap the map to hunt the nearest.</p>
+            <p className="py-2 font-mono text-micro text-subtle">Tap an inbound drone on radar — or tap the map to hunt the nearest contact.</p>
+          ) : scout ? (
+            <p className="py-2 font-mono text-micro text-subtle">Tap the map to send a scout. Tap the bird, then the map, to steer it. Spotted yards stay lit.</p>
           ) : (
             <>
               {sites.map((site) => {
@@ -64,7 +68,7 @@ export function LaunchDock({ handle }: { handle: Handle | null }) {
                 );
               })}
               {sites.length === 0 ? (
-                <p className="py-2 font-mono text-micro text-subtle">No enemy yards yet — they will fortify.</p>
+                <p className="py-2 font-mono text-micro text-subtle">No spotted yards — send Leleka over the LoC.</p>
               ) : null}
               {sites.length > 0 && selected && reachCount === 0 ? (
                 <p className="py-2 font-mono text-micro text-subtle">
@@ -130,7 +134,13 @@ export function LaunchDock({ handle }: { handle: Handle | null }) {
                   <span>
                     <span className="text-sm font-medium">{t.name}</span>
                     <span className="block font-mono text-micro text-subtle">
-                      {t.isAa ? `${rangeKm(t.aaRange)} km` : `${t.build.parts}p ${t.build.electronics}c`}
+                      {t.isAa
+                        ? `${rangeKm(t.aaRange)} km`
+                        : t.isRadar
+                          ? `${rangeKm(t.radarRange)} km`
+                          : t.isEw
+                            ? `${rangeKm(t.ewRange)} km`
+                            : `${t.build.parts}p ${t.build.electronics}c`}
                     </span>
                   </span>
                 </button>

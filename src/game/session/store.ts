@@ -18,6 +18,7 @@ export interface SessionState {
   hud: HudSnap | null;
   hoverSiteId: string | null;
   relocateId: string | null;
+  steerDroneId: number | null;
   result: "won" | "lost" | null;
   setUi: (ui: UiPhase) => void;
   setTheater: (id: TheaterId) => void;
@@ -27,6 +28,7 @@ export interface SessionState {
   setBuildType: (id: SiteTypeId | null) => void;
   setDockTab: (tab: DockTab) => void;
   setRelocate: (id: string | null) => void;
+  setSteer: (id: number | null) => void;
   togglePackage: () => void;
   toggleMute: () => void;
   setHud: (h: HudSnap | null) => void;
@@ -67,6 +69,7 @@ export const useSession = create<SessionState>((set, get) => ({
   hud: null,
   hoverSiteId: null,
   relocateId: null,
+  steerDroneId: null,
   result: null,
   ...load(),
   setUi: (ui) => set({ ui }),
@@ -82,15 +85,17 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ difficultyId });
     persist(get);
   },
-  setSelected: (selected) => set({ selected, dockTab: "sortie", buildType: null, relocateId: null }),
-  setBuildType: (buildType) => set({ buildType, dockTab: "fortify", relocateId: null }),
+  setSelected: (selected) => set({ selected, dockTab: "sortie", buildType: null, relocateId: null, steerDroneId: null }),
+  setBuildType: (buildType) => set({ buildType, dockTab: "fortify", relocateId: null, steerDroneId: null }),
   setDockTab: (dockTab) =>
     set({
       dockTab,
       buildType: dockTab === "fortify" ? get().buildType ?? "mog" : null,
       relocateId: null,
+      steerDroneId: null,
     }),
   setRelocate: (relocateId) => set({ relocateId }),
+  setSteer: (steerDroneId) => set({ steerDroneId }),
   togglePackage: () => set({ packageMode: !get().packageMode }),
   toggleMute: () => {
     set({ muted: !get().muted });

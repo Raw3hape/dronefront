@@ -4,6 +4,7 @@ import { MAX_SITES_PER_SIDE, MIN_SITE_GAP, WORLD_H, WORLD_W } from "./constants"
 import { dist2 } from "./spatial";
 import type { SiteState, World } from "./types";
 import { burst } from "./fx";
+import { spottedMap } from "./intel";
 
 export type PlaceFail = "phase" | "type" | "afford" | "side" | "gap" | "cap" | "edge";
 export type MoveFail = "phase" | "type" | "side" | "gap" | "edge" | "dead";
@@ -68,6 +69,7 @@ export function placeSite(
     maxHp: t.hp,
     fireCd: 0.4,
     markedUntil: 0,
+    spotted: spottedMap(side),
     alive: true,
   });
   world.events.push({ kind: "build", side, x, y, label: t.name });

@@ -22,6 +22,7 @@ const SITE_KEYS = [
   "shorad",
   "longsam",
   "ew",
+  "radar",
   "fuel",
   "rail",
 ] as const;

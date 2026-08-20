@@ -19,6 +19,7 @@ export interface SiteState {
   maxHp: number;
   fireCd: number;
   markedUntil: number;
+  spotted: Record<SideId, boolean>;
   alive: boolean;
 }
 
@@ -38,6 +39,8 @@ export interface DroneState {
   maxFuel: number;
   targetSiteId: string | null;
   targetDroneId: number | null;
+  destX: number;
+  destY: number;
   age: number;
   life: DroneLife;
   bob: number;
@@ -76,6 +79,8 @@ export interface LaunchOrder {
   typeId: DroneTypeId;
   targetSiteId: string | null;
   targetDroneId: number | null;
+  wx?: number | null;
+  wy?: number | null;
   delay: number;
 }
 

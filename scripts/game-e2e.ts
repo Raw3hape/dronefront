@@ -3,6 +3,7 @@ import { tickWorld } from "../src/game/sim/loop";
 import { enqueue } from "../src/game/sim/spawn";
 import { canMove, canPlace, moveSite, placeSite } from "../src/game/sim/build";
 import { inRange } from "../src/game/sim/range";
+import { droneKnown, inRadar, revealSite, siteKnown } from "../src/game/sim/intel";
 import { MAX_SITES_PER_SIDE, SIM_DT } from "../src/game/sim/constants";
 import { DRONE_TYPES, SITE_TYPES, projectLl, projectOwned, sideAt, THEATERS } from "../src/game/catalog";
 import loc from "../src/game/catalog/loc.json";
@@ -54,6 +55,10 @@ function placeOnApproach(w: World, typeId: "mog" | "aa", from: { x: number; y: n
   return false;
 }
 
+function know(w: World, side: "west" | "east"): void {
+  for (const s of w.sites) if (s.side !== side) s.spotted[side] = true;
+}
+
 function step(w: World, seconds: number): void {
   const n = Math.floor(seconds / SIM_DT);
   for (let i = 0; i < n; i++) tickWorld(w, SIM_DT);
@@ -62,6 +67,23 @@ function step(w: World, seconds: number): void {
 const front = worldOf();
 const kyiv = hq(front, "west");
 const rostov = hq(front, "east");
+assert(siteKnown(kyiv, "west") && !siteKnown(rostov, "west"), "own HQ known, enemy HQ fogged");
+assert(
+  !enqueue(front, { side: "west", typeId: "loiter", targetSiteId: rostov.id, targetDroneId: null, delay: 0 }),
+  "cannot strike fogged HQ",
+);
+assert(
+  enqueue(front, { side: "west", typeId: "recon", targetSiteId: null, targetDroneId: null, wx: rostov.x, wy: rostov.y, delay: 0 }),
+  "recon waypoint to Rostov",
+);
+step(front, 28);
+assert(siteKnown(rostov, "west"), "overflight spots Rostov");
+assert(front.drones.some((d) => d.live && d.typeId === "recon"), "recon still aloft after spot");
+assert(
+  enqueue(front, { side: "west", typeId: "loiter", targetSiteId: rostov.id, targetDroneId: null, delay: 0 }),
+  "strike after spot",
+);
+
 assert(sideAt("front", kyiv.x, kyiv.y) === "west", "Kyiv is west of LoC");
 assert(sideAt("front", rostov.x, rostov.y) === "east", "Rostov is east of LoC");
 assert(!inRange(front, "west", "fpv", rostov.x, rostov.y), "FPV Kyiv→Rostov blocked");
@@ -69,10 +91,6 @@ assert(inRange(front, "west", "loiter", rostov.x, rostov.y), "Liutyi Kyiv→Rost
 assert(
   !enqueue(front, { side: "west", typeId: "fpv", targetSiteId: rostov.id, targetDroneId: null, delay: 0 }),
   "enqueue FPV to Rostov fails",
-);
-assert(
-  enqueue(front, { side: "west", typeId: "loiter", targetSiteId: rostov.id, targetDroneId: null, delay: 0 }),
-  "enqueue Liutyi to Rostov",
 );
 assert(
   !enqueue(front, { side: "west", typeId: "interceptor", targetSiteId: rostov.id, targetDroneId: null, delay: 0 }),
@@ -133,6 +151,7 @@ assert(!inRange(eastW, "east", "fpv", hq(eastW, "west").x, hq(eastW, "west").y),
 const ew = worldOf();
 const eHq = hq(ew, "west");
 assert(placeSite(ew, "west", "ew", eHq.x + 100, eHq.y + 40), "place EW");
+know(ew, "east");
 enqueue(ew, { side: "east", typeId: "loiter", targetSiteId: eHq.id, targetDroneId: null, delay: 0 });
 step(ew, 2);
 const geran = ew.drones.find((d) => d.live && d.typeId === "loiter");
@@ -164,6 +183,10 @@ assert(SITE_TYPES.shorad.aaOrdnance === "missile", "shorad missiles");
 assert(SITE_TYPES.shorad.aaBurst === 1, "SAM volley is one");
 assert(SITE_TYPES.aa.aaOrdnance === "missile", "SAM missiles");
 assert(SITE_TYPES.longsam.aaOrdnance === "missile", "longsam missiles");
+assert(SITE_TYPES.radar.isRadar && SITE_TYPES.radar.radarRange === SITE_TYPES.aa.aaRange, "radar ring matches medium SAM");
+assert(!SITE_TYPES.radar.isAa, "radar is not a battery");
+assert(DRONE_TYPES.recon.spotRange > 0, "Leleka spots");
+assert(DRONE_TYPES.fpv.spotRange === 0, "FPV does not spot");
 
 for (const id of ["front", "north", "south"] as const) {
   const seeded = worldOf(id);
@@ -191,6 +214,7 @@ const gHq = hq(guns, "west");
 const gEast = hq(guns, "east");
 assert(placeOnApproach(guns, "mog", gEast, gHq), "place mog for gun fire");
 const mogGun = guns.sites.find((s) => s.typeId === "mog" && s.side === "west")!;
+know(guns, "east");
 assert(
   enqueue(guns, { side: "east", typeId: "fpv", targetSiteId: gHq.id, targetDroneId: null, delay: 0 }),
   "east FPV inbound on north for mog",
@@ -218,6 +242,7 @@ const sHq = hq(samW, "west");
 const sEast = hq(samW, "east");
 assert(placeOnApproach(samW, "aa", sEast, sHq), "place SAM");
 const sam = samW.sites.find((s) => s.typeId === "aa" && s.side === "west")!;
+know(samW, "east");
 assert(
   enqueue(samW, { side: "east", typeId: "loiter", targetSiteId: sHq.id, targetDroneId: null, delay: 0 }),
   "Geran inbound for SAM",
@@ -227,6 +252,41 @@ assert(samW.events.some((e) => e.kind === "aa" && Math.hypot(e.x - sam.x, e.y - 
 assert(
   !samW.events.some((e) => e.kind === "gun" && Math.hypot(e.x - sam.x, e.y - sam.y) < 3),
   "SAM does not emit gun events",
+);
+
+const rad = worldOf("north");
+const radHq = hq(rad, "west");
+const radE = hq(rad, "east");
+know(rad, "east");
+assert(
+  enqueue(rad, { side: "east", typeId: "fpv", targetSiteId: radHq.id, targetDroneId: null, delay: 0 }),
+  "east FPV for radar test",
+);
+step(rad, 0.4);
+const inbound = rad.drones.find((d) => d.live && d.side === "east");
+assert(Boolean(inbound), "inbound exists");
+assert(inbound != null && !droneKnown(rad, inbound, "west"), "no radar → inbound dark");
+assert(placeSite(rad, "west", "radar", radHq.x + 90, radHq.y - 90), "place radar");
+assert(inbound != null && droneKnown(rad, inbound, "west") === inRadar(rad, "west", inbound.x, inbound.y), "contact iff in radar");
+
+const steer = worldOf("north");
+const stE = hq(steer, "east");
+assert(
+  enqueue(steer, { side: "west", typeId: "recon", targetSiteId: null, targetDroneId: null, wx: stE.x, wy: stE.y, delay: 0 }),
+  "recon launch north",
+);
+step(steer, 1);
+const bird = steer.drones.find((d) => d.live && d.typeId === "recon")!;
+assert(Boolean(bird), "recon airborne");
+const ox = bird.x;
+const oy = bird.y;
+bird.destX = bird.x + 40;
+bird.destY = bird.y - 20;
+step(steer, 1.2);
+assert(Math.hypot(bird.x - ox, bird.y - oy) > 8, "steer moves recon");
+assert(
+  !enqueue(steer, { side: "west", typeId: "recon", targetSiteId: stE.id, targetDroneId: null, delay: 0 }),
+  "recon still needs a waypoint, not a site id",
 );
 
 const idle = worldOf("front", "operator", "west", 11);
@@ -239,6 +299,7 @@ const pE = hq(play, "east");
 placeSite(play, "west", "aa", pHq.x + 110, pHq.y);
 placeSite(play, "west", "aa", pHq.x + 110, pHq.y + 90);
 placeSite(play, "west", "ew", pHq.x + 40, pHq.y + 100);
+know(play, "west");
 let fire = 0;
 for (let i = 0; i < Math.floor(240 / SIM_DT); i++) {
   fire -= SIM_DT;

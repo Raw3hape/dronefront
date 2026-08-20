@@ -8,6 +8,7 @@ import { tickCombat } from "./combat";
 import { tickFx } from "./fx";
 import { tickWin } from "./win";
 import { tickRelocate } from "./build";
+import { tickIntel, droneKnown, siteKnown } from "./intel";
 import { tickBot } from "@/game/ai/bot";
 import { SITE_TYPES } from "@/game/catalog";
 import { OTHER_SIDE } from "@/game/catalog/factions";
@@ -26,6 +27,7 @@ export function tickWorld(world: World, dt: number): void {
   tickSpawn(world, dt);
   tickEw(world, dt);
   tickFlight(world, dt);
+  tickIntel(world);
   tickInterceptAcquire(world);
   tickAa(world, dt);
   tickCombat(world, dt);
@@ -45,7 +47,7 @@ export function snapHud(world: World): HudSnap {
     if (s.side === me) {
       ownT += 1;
       if (s.alive) ownS += 1;
-    } else {
+    } else if (siteKnown(s, me)) {
       enemyT += 1;
       if (s.alive) enemyS += 1;
     }
@@ -55,7 +57,7 @@ export function snapHud(world: World): HudSnap {
   for (const d of world.drones) {
     if (!d.live) continue;
     if (d.side === me) airborne += 1;
-    else inbound += 1;
+    else if (droneKnown(world, d, me)) inbound += 1;
   }
   const ownHq = world.sites.find((s) => s.side === me && s.typeId === "hq");
   const enemyHq = world.sites.find((s) => s.side === them && s.typeId === "hq");
@@ -71,7 +73,8 @@ export function snapHud(world: World): HudSnap {
     inbound,
     airborne,
     ownHq: ownHq && ownHq.maxHp > 0 ? ownHq.hp / ownHq.maxHp : 0,
-    enemyHq: enemyHq && enemyHq.maxHp > 0 ? enemyHq.hp / enemyHq.maxHp : 0,
+    enemyHq:
+      enemyHq && siteKnown(enemyHq, me) && enemyHq.maxHp > 0 ? enemyHq.hp / enemyHq.maxHp : -1,
     stats: { ...world.stats[me] },
   };
 }

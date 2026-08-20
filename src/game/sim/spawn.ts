@@ -3,6 +3,7 @@ import { angleTo } from "./spatial";
 import { allocDrone } from "./world";
 import { nextRng } from "./rng";
 import { aimOf, inRange, padOf } from "./range";
+import { siteKnown } from "./intel";
 import type { LaunchOrder, World } from "./types";
 import { burst } from "./fx";
 
@@ -13,10 +14,14 @@ export function enqueue(world: World, order: LaunchOrder): boolean {
     const prey = world.drones.find((d) => d.live && d.id === order.targetDroneId);
     if (!prey || prey.side === order.side) return false;
     if (!inRange(world, order.side, order.typeId, prey.x, prey.y)) return false;
+  } else if (type.role === "recon") {
+    if (order.wx == null || order.wy == null) return false;
+    if (!inRange(world, order.side, order.typeId, order.wx, order.wy)) return false;
   } else {
     if (!order.targetSiteId) return false;
     const site = world.sites.find((s) => s.id === order.targetSiteId);
     if (!site || !site.alive || site.side === order.side) return false;
+    if (!siteKnown(site, order.side)) return false;
     if (!inRange(world, order.side, order.typeId, site.x, site.y)) return false;
   }
   payCost(world.stocks[order.side], type.cost);
@@ -37,9 +42,14 @@ export function tickSpawn(world: World, dt: number): void {
         refund();
         continue;
       }
+    } else if (type.role === "recon") {
+      if (order.wx == null || order.wy == null || !inRange(world, order.side, order.typeId, order.wx, order.wy)) {
+        refund();
+        continue;
+      }
     } else {
       const site = world.sites.find((s) => s.id === order.targetSiteId);
-      if (!site || !site.alive) {
+      if (!site || !site.alive || !siteKnown(site, order.side)) {
         refund();
         continue;
       }
@@ -70,8 +80,10 @@ export function tickSpawn(world: World, dt: number): void {
     slot.maxHp = type.hp;
     slot.fuel = type.range;
     slot.maxFuel = type.range;
-    slot.targetSiteId = type.role === "intercept" ? null : order.targetSiteId;
+    slot.targetSiteId = type.role === "intercept" || type.role === "recon" ? null : order.targetSiteId;
     slot.targetDroneId = type.role === "intercept" ? order.targetDroneId : null;
+    slot.destX = aim.x;
+    slot.destY = aim.y;
     slot.age = 0;
     slot.bob = nextRng(world) * Math.PI * 2;
     slot.life = type.role === "intercept" ? "hunt" : "cruise";

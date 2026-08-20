@@ -1,9 +1,11 @@
 import { DRONE_ORDER, DRONE_TYPES, SITE_TYPES } from "@/game/catalog";
 import { createWorld, enqueue, snapHud, tickWorld } from "@/game/sim";
 import { canMove, canPlace } from "@/game/sim/build";
+import { inRange } from "@/game/sim/range";
 import { pickInbound } from "@/game/ai/targeting";
 import { MAX_DT, SIM_DT } from "@/game/sim/constants";
 import { dist2 } from "@/game/sim/spatial";
+import { droneKnown, siteKnown } from "@/game/sim/intel";
 import type { MatchConfig, World } from "@/game/sim/types";
 import { sfxAa, sfxGun, sfxHit, sfxLaunch, sfxLose, sfxWin, setMuted, unlockAudio } from "@/game/audio/engine";
 import { useSession } from "@/game/session/store";
@@ -12,11 +14,11 @@ import { createPointer, pinchDistance } from "@/game/input/pointer";
 import { fitCamera, pan, screenToWorld, zoomAt, type Camera } from "./camera";
 import { drawMap } from "./draw-map";
 import { drawDrones, drawGhost, drawSites } from "./draw-entities";
-import { drawPadRanges } from "./draw-range";
+import { drawPadRanges, drawScoutGhost } from "./draw-range";
 import { drawFx, drawMinimap, drawShots } from "./draw-fx";
 import { loadAtlas, type Atlas } from "./sprites";
 import { addShake, tickShake } from "./juice";
-import { fortifyClick, launchAtSite, ownMobile } from "./orders";
+import { fortifyClick, launchAtSite, ownMobile, reconClick } from "./orders";
 
 export interface Handle {
   world: World;
@@ -71,6 +73,7 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
     let bestD = 48 * 48;
     for (const s of world.sites) {
       if (!s.alive) continue;
+      if (s.side !== world.playerSide && !siteKnown(s, world.playerSide)) continue;
       const rad = SITE_TYPES[s.typeId].radius + 10;
       const d = dist2(wx, wy, s.x, s.y);
       if (d < rad * rad && d < bestD) {
@@ -87,6 +90,7 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
     let bestD = hitR * hitR;
     for (const d of world.drones) {
       if (!d.live) continue;
+      if (!droneKnown(world, d, world.playerSide)) continue;
       const dd = dist2(wx, wy, d.x, d.y);
       if (dd < bestD) {
         best = d;
@@ -111,6 +115,10 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
     const typeId = session.selected;
     if (!typeId) return;
     const type = DRONE_TYPES[typeId];
+    if (type.role === "recon") {
+      reconClick(world, session, wpt.x, wpt.y, hitDrone(wpt.x, wpt.y), sfxLaunch);
+      return;
+    }
     if (type.role === "intercept") {
       const d = hitDrone(wpt.x, wpt.y);
       const clicked = d && d.side !== world.playerSide ? d.id : null;
@@ -298,6 +306,18 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
             !rs && typeId === "airfield" && session.selected ? DRONE_TYPES[session.selected].range : 0;
           drawGhost(ctx, atlas, cam, viewW, viewH, cursor.x, cursor.y, typeId, ok, padRange);
         }
+      }
+      if (session.dockTab === "sortie" && session.selected && DRONE_TYPES[session.selected].role === "recon" && cursor.on) {
+        drawScoutGhost(
+          ctx,
+          cam,
+          viewW,
+          viewH,
+          cursor.x,
+          cursor.y,
+          DRONE_TYPES[session.selected].spotRange,
+          inRange(world, world.playerSide, session.selected, cursor.x, cursor.y),
+        );
       }
       drawDrones(ctx, world, atlas, cam, viewW, viewH);
       drawShots(ctx, world, atlas, cam, viewW, viewH);

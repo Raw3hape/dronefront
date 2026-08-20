@@ -2,9 +2,10 @@ import { BUILD_ORDER, DIFFICULTIES, DRONE_TYPES, SITE_TYPES, THEATERS, canAfford
 import { OTHER_SIDE } from "@/game/catalog/factions";
 import { enqueue } from "@/game/sim/spawn";
 import { placeSite } from "@/game/sim/build";
+import { inRange } from "@/game/sim/range";
 import { MIN_SITE_GAP } from "@/game/sim/constants";
 import { nextRng } from "@/game/sim/rng";
-import { pickInbound, pickStrikeTarget, pickBuildType, pickStrikeType } from "./targeting";
+import { pickInbound, pickStrikeTarget, pickBuildType, pickStrikeType, pickScoutAim } from "./targeting";
 import type { World } from "@/game/sim/types";
 
 export function tickBot(world: World, dt: number): void {
@@ -35,6 +36,20 @@ export function tickBot(world: World, dt: number): void {
         targetSiteId: null,
         targetDroneId: prey,
         delay: i * 0.35,
+      });
+      continue;
+    }
+    if (type.role === "recon") {
+      const aim = pickScoutAim(world, bot);
+      if (!aim || !inRange(world, bot, typeId, aim.x, aim.y)) continue;
+      enqueue(world, {
+        side: bot,
+        typeId,
+        targetSiteId: null,
+        targetDroneId: null,
+        wx: aim.x,
+        wy: aim.y,
+        delay: i * 0.28,
       });
       continue;
     }
@@ -80,7 +95,7 @@ function tryBotBuild(world: World, bot: World["playerSide"]): void {
   });
   if (open.length === 0) return;
   let sl = open[Math.floor(nextRng(world) * open.length)]!;
-  if (SITE_TYPES[typeId].isAa || typeId === "ew") {
+  if (SITE_TYPES[typeId].isAa || SITE_TYPES[typeId].isRadar || typeId === "ew") {
     const hq = world.sites.find((s) => s.alive && s.side === bot && s.typeId === "hq");
     if (hq) {
       open.sort((a, b) => Math.hypot(a.x - hq.x, a.y - hq.y) - Math.hypot(b.x - hq.x, b.y - hq.y));

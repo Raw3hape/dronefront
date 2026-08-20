@@ -10,8 +10,8 @@ export function tickFlight(world: World, dt: number): void {
     const type = DRONE_TYPES[d.typeId];
     d.age += dt;
     d.bob += dt * 6;
-    let tx = d.x + Math.cos(d.heading) * 80;
-    let ty = d.y + Math.sin(d.heading) * 80;
+    let tx = d.destX;
+    let ty = d.destY;
     if (d.life === "hunt" && d.targetDroneId != null) {
       const prey = world.drones.find((o) => o.live && o.id === d.targetDroneId);
       if (prey) {
@@ -25,7 +25,9 @@ export function tickFlight(world: World, dt: number): void {
         ty = site.y;
       }
     }
-    const desired = angleTo(d.x, d.y, tx, ty);
+    const toDest = Math.hypot(tx - d.x, ty - d.y);
+    const loiter = type.role === "recon" && toDest < 28;
+    const desired = loiter ? d.heading + 1.1 : angleTo(d.x, d.y, tx, ty);
     d.heading = turnToward(d.heading, desired, type.turnRate * dt);
     const wobble = (nextRng(world) - 0.5) * 18;
     let sp = type.speed;
@@ -40,6 +42,7 @@ export function tickFlight(world: World, dt: number): void {
       }
       sp *= slow;
     }
+    if (loiter) sp *= 0.55;
     d.vx = Math.cos(d.heading) * sp;
     d.vy = Math.sin(d.heading) * sp + Math.sin(d.bob) * 8 + wobble * 0.15;
     const x0 = d.x;

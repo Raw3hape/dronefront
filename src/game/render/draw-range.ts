@@ -30,3 +30,32 @@ export function drawPadRanges(
     ctx.setLineDash([]);
   }
 }
+
+export function drawScoutGhost(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  viewW: number,
+  viewH: number,
+  x: number,
+  y: number,
+  spotRange: number,
+  ok: boolean,
+): void {
+  const p = worldToScreen(cam, viewW, viewH, x, y);
+  ctx.save();
+  ctx.globalAlpha = 0.7;
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = ok ? "rgba(141,163,122,0.85)" : "rgba(196,92,74,0.7)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, Math.max(8, 10 * cam.zoom), 0, Math.PI * 2);
+  ctx.stroke();
+  if (spotRange > 0) {
+    ctx.strokeStyle = ok ? "rgba(141,163,122,0.4)" : "rgba(196,92,74,0.35)";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, spotRange * cam.zoom, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+}
