@@ -1,5 +1,6 @@
 import { DRONE_TYPES, FACTIONS, SITE_TYPES } from "@/game/catalog";
 import type { SiteTypeId } from "@/game/catalog/ids";
+import { siteMoving } from "@/game/sim/build";
 import type { World } from "@/game/sim/types";
 import { worldToScreen, type Camera } from "./camera";
 import type { Atlas } from "./sprites";
@@ -29,6 +30,22 @@ export function drawSites(
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.setLineDash([]);
+    }
+    if (site.alive && siteMoving(site)) {
+      const dest = worldToScreen(cam, viewW, viewH, site.destX, site.destY);
+      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = ring;
+      ctx.lineWidth = Math.max(1.2, 1.6 * cam.zoom);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(dest.x, dest.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.arc(dest.x, dest.y, size * 0.28, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
     ctx.save();
     ctx.fillStyle = site.alive ? tint : "rgba(40,38,34,0.55)";

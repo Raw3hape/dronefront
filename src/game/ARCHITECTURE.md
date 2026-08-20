@@ -30,9 +30,31 @@ Do not invent parallel types. Import from `@/game/catalog` and `@/game/sim/types
 
 ## Build
 
-- Matches seed only HQ (also an airfield). Player and bot place the rest.
+- Theaters may seed HQ plus yards. Seeded yards are still placeable (`placeable: true`);
+  they occupy `MAX_SITES_PER_SIDE` (16) slots.
 - Place on own side of the LoC, `MIN_SITE_GAP`, `MAX_SITES_PER_SIDE`.
 - `placeSite` in `sim/build.ts`. Bot uses theater `slots`.
+
+## AA tiers
+
+Catalog-only. `aa` is the medium SAM. All types carry `value` (strike priority),
+`mobile`, `relocateSpeed` (wu/s, 0 = cannot move).
+
+- `mog` — МОГ, cheap mobile fire group vs FPV (short range, high rate).
+- `shorad` — Pantsir/Gepard class, mid ring, mobile.
+- `aa` — medium SAM, slow relocate.
+- `longsam` — Patriot/S-300 class, long ring, fixed (`mobile: false`).
+
+`BUILD_ORDER`: mog, shorad, aa, longsam, ew, then yards.
+
+## Relocate
+
+- Mobile living sites on the player's side can be retasked in Fortify.
+- `canMove` / `moveSite` set `destX`/`destY` (no teleport). Same checks as place
+  except afford / type / cap; skip gap vs self; own side of the LoC only.
+- `tickRelocate` lerps at `relocateSpeed`. While hypot(dest−pos) > 2 the site is
+  moving: `fireCd` stays > 0 and AA does not shoot. Snap when close.
+- `createWorld` sets `destX`/`destY` after site `x`,`y` exist (theaters may use lon/lat).
 
 ## Launch
 
@@ -46,10 +68,11 @@ Do not invent parallel types. Import from `@/game/catalog` and `@/game/sim/types
 - AA shot ttl = aaRange / aaSpeed (missiles die on the battery ring).
 - Player ПВО uses catalog stats; `botAccuracy` / `aaMul` apply only to the bot.
 - HUD km = range × `KM_PER_UNIT` (0.5).
+- Drone catalog speeds are ~0.58× the old hop so the map reads as an operational theater.
 
 ## Systems order each tick
 
-economy → bot AI → spawn queue → EW jam → flight → intercept acquire →
+economy → relocate → bot AI → spawn queue → EW jam → flight → intercept acquire →
 AA fire → projectiles/damage → fx age → win check → event drain
 
 ## Files

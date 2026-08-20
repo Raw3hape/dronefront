@@ -15,6 +15,18 @@ export function drawShots(
 ): void {
   for (const s of world.shots) {
     if (!s.live) continue;
+    const speed = Math.hypot(s.vx, s.vy) || 1;
+    const ux = s.vx / speed;
+    const uy = s.vy / speed;
+    for (let i = 3; i >= 1; i--) {
+      const tp = worldToScreen(cam, viewW, viewH, s.x - ux * i * 10, s.y - uy * i * 10);
+      ctx.globalAlpha = 0.12 * (4 - i);
+      ctx.fillStyle = "#e6e4d8";
+      ctx.beginPath();
+      ctx.arc(tp.x, tp.y, Math.max(1.1, (4.2 - i) * cam.zoom), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
     const p = worldToScreen(cam, viewW, viewH, s.x, s.y);
     const ang = Math.atan2(s.vy, s.vx);
     const img = atlas.missile[Math.floor(world.time * 12) % atlas.missile.length];
@@ -46,7 +58,7 @@ export function drawFx(
     const a = Math.max(0, f.life / f.maxLife);
     if (f.kind === "burst") {
       const frame = atlas.explode[Math.min(3, Math.floor(t * 4))];
-      const size = (f.size + 28) * cam.zoom;
+      const size = (f.size + 40) * cam.zoom;
       ctx.globalAlpha = a;
       if (frame) ctx.drawImage(frame, p.x - size / 2, p.y - size / 2, size, size);
       ctx.globalAlpha = 1;

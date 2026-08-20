@@ -1,7 +1,9 @@
 import { DIFFICULTIES, DRONE_TYPES, SITE_TYPES } from "@/game/catalog";
+import { siteMoving } from "./build";
+import { muzzle } from "./fx";
+import { nextRng } from "./rng";
 import { angleTo, dist2 } from "./spatial";
 import { allocShot } from "./world";
-import { nextRng } from "./rng";
 import type { World } from "./types";
 
 export function tickAa(world: World, dt: number): void {
@@ -10,6 +12,7 @@ export function tickAa(world: World, dt: number): void {
     if (!site.alive) continue;
     const t = SITE_TYPES[site.typeId];
     if (!t.isAa) continue;
+    if (siteMoving(site)) continue;
     site.fireCd -= dt;
     if (site.fireCd > 0) continue;
     const bot = site.side !== world.playerSide;
@@ -54,6 +57,7 @@ export function tickAa(world: World, dt: number): void {
     shot.dmg = t.aaDamage * aaMul;
     shot.targetDroneId = pick.id;
     site.fireCd = 1 / (t.aaRate * aaMul);
+    muzzle(world, site.x, site.y, ang + jitter);
     world.events.push({ kind: "aa", side: site.side, x: site.x, y: site.y });
   }
 }

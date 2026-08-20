@@ -17,6 +17,9 @@ export type SiteTypeId =
   | "ammo"
   | "fuel"
   | "aa"
+  | "mog"
+  | "shorad"
+  | "longsam"
   | "ew"
   | "rail";
 export type TheaterId = "front" | "north" | "south";

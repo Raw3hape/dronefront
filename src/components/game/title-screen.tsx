@@ -43,7 +43,7 @@ export function TitleScreen() {
             DRONEFRONT
           </h1>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-muted sm:text-base">
-            Guard the HQ with ПВО, then strike. FPV needs a pad on the LoC; Geran / Liutyi fly the long way.
+            Guard the HQ with МОГ and SAM — tap a battery to relocate it. FPV needs a pad on the LoC; Geran / Liutyi fly the long way.
           </p>
         </div>
 

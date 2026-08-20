@@ -130,7 +130,7 @@ export function LaunchDock({ handle }: { handle: Handle | null }) {
                   <span>
                     <span className="text-sm font-medium">{t.name}</span>
                     <span className="block font-mono text-micro text-subtle">
-                      {t.build.parts}p {t.build.electronics}c
+                      {t.isAa ? `${rangeKm(t.aaRange)} km` : `${t.build.parts}p ${t.build.electronics}c`}
                     </span>
                   </span>
                 </button>
@@ -155,8 +155,8 @@ export function LaunchDock({ handle }: { handle: Handle | null }) {
             ? `${DRONE_TYPES[selected].blurb} · ${rangeKm(DRONE_TYPES[selected].range)} km from nearest pad`
             : "Select a drone"
           : buildType
-            ? `${SITE_TYPES[buildType].blurb} · tap your side of the LoC`
-            : "Select ПВО, РЭБ or a yard"}
+            ? `${SITE_TYPES[buildType].blurb} · Tap your ПВО to relocate`
+            : "Tap your ПВО to relocate"}
       </p>
     </div>
   );

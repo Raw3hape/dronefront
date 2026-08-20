@@ -5,19 +5,6 @@ import { nextRng } from "@/game/sim/rng";
 import { inRange } from "@/game/sim/range";
 import type { SiteState, World } from "@/game/sim/types";
 
-const VALUE: Partial<Record<SiteTypeId, number>> = {
-  hq: 1.3,
-  factory: 1.2,
-  refinery: 1.15,
-  power: 1.1,
-  airfield: 1.05,
-  ammo: 1,
-  fuel: 0.95,
-  rail: 0.9,
-  aa: 0.75,
-  ew: 0.8,
-};
-
 export function pickStrikeTarget(world: World, side: SideId, typeId?: DroneTypeId): SiteState | null {
   const enemy = side === "west" ? "east" : "west";
   let best: SiteState | null = null;
@@ -26,7 +13,7 @@ export function pickStrikeTarget(world: World, side: SideId, typeId?: DroneTypeI
     if (!s.alive || s.side !== enemy) continue;
     if (typeId && !inRange(world, side, typeId, s.x, s.y)) continue;
     const t = SITE_TYPES[s.typeId];
-    const w = (VALUE[s.typeId] ?? 0.5) * (0.4 + s.hp / s.maxHp);
+    const w = t.value * (0.4 + s.hp / s.maxHp);
     const marked = s.markedUntil > world.time ? 1.25 : 1;
     const n = w * marked * (t.strategic ? 1 : 0.55) * (0.85 + nextRng(world) * 0.3);
     if (n > score) {
@@ -81,18 +68,21 @@ export function pickBuildType(world: World, side: SideId): SiteTypeId {
   let yards = 0;
   let pads = 0;
   let factory = 0;
+  let longsams = 0;
   for (const s of world.sites) {
     if (!s.alive || s.side !== side) continue;
-    if (s.typeId === "aa") aa += 1;
+    const t = SITE_TYPES[s.typeId];
+    if (t.isAa) aa += 1;
     else if (s.typeId === "ew") ew += 1;
     else yards += 1;
     if (s.typeId === "factory") factory += 1;
-    if (SITE_TYPES[s.typeId].isAirfield) pads += 1;
+    if (s.typeId === "longsam") longsams += 1;
+    if (t.isAirfield) pads += 1;
   }
   let inbound = 0;
   for (const d of world.drones) if (d.live && d.side !== side) inbound += 1;
   const r = nextRng(world);
-  if (aa < 1) return "aa";
+  if (aa < 1) return "mog";
   if (inbound >= 2 && aa < 2) return "aa";
   if (factory < 1) return "factory";
   if (ew < 1) return "ew";
@@ -104,7 +94,7 @@ export function pickBuildType(world: World, side: SideId): SiteTypeId {
   }
   const short = pickStrikeTarget(world, side, "fpv") === null;
   if (short && pads < 3 && r < 0.45) return "airfield";
-  if (r < 0.4) return "aa";
+  if (r < 0.4) return longsams < 1 ? "longsam" : "aa";
   if (r < 0.65) return "ew";
   return r < 0.85 ? "power" : "rail";
 }

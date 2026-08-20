@@ -1,4 +1,4 @@
-import { DIFFICULTIES, SITE_TYPES, THEATERS } from "@/game/catalog";
+import { DIFFICULTIES, SITE_TYPES, THEATERS, projectOwned } from "@/game/catalog";
 import { MAX_DRONES, MAX_FX, MAX_SHOTS, STOCK_CAP } from "./constants";
 import type { DroneState, FxState, MatchConfig, ShotState, SiteState, World } from "./types";
 
@@ -62,13 +62,16 @@ export function createWorld(cfg: MatchConfig): World {
   const diff = DIFFICULTIES[cfg.difficultyId];
   const sites: SiteState[] = theater.sites.map((bp) => {
     const t = SITE_TYPES[bp.typeId];
+    const { x, y } = projectOwned(cfg.theaterId, bp.lon, bp.lat, bp.side);
     return {
       id: `${bp.side}-${bp.key}`,
       typeId: bp.typeId,
       side: bp.side,
       name: bp.name,
-      x: bp.x,
-      y: bp.y,
+      x,
+      y,
+      destX: x,
+      destY: y,
       hp: t.hp,
       maxHp: t.hp,
       fireCd: 0,

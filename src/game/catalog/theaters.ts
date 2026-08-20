@@ -5,16 +5,16 @@ export interface SiteBlueprint {
   key: string;
   typeId: SiteTypeId;
   side: SideId;
-  x: number;
-  y: number;
+  lon: number;
+  lat: number;
   name: string;
 }
 
 export interface SiteSlot {
   key: string;
   side: SideId;
-  x: number;
-  y: number;
+  lon: number;
+  lat: number;
   name: string;
 }
 
@@ -29,19 +29,50 @@ export interface Theater {
   slots: SiteSlot[];
 }
 
-function s(
-  key: string,
-  typeId: SiteTypeId,
-  side: SideId,
-  x: number,
-  y: number,
-  name: string,
-): SiteBlueprint {
-  return { key, typeId, side, x, y, name };
+/** WGS84 from bake-geo-maps.py SITES (plus slot towns). */
+const LL: Record<string, readonly [number, number]> = {
+  kyiv: [30.5234, 50.4501],
+  kharkiv: [36.2304, 49.9935],
+  dnipro: [35.0462, 48.4647],
+  zaporizhzhia: [35.1396, 47.8388],
+  odesa: [30.7233, 46.4825],
+  poltava: [34.5514, 49.5883],
+  mykolaiv: [31.9946, 46.975],
+  kramatorsk: [37.5839, 48.7389],
+  sumy: [34.7981, 50.9077],
+  chernihiv: [31.2893, 51.4982],
+  belgorod: [36.5873, 50.5977],
+  kursk: [36.1874, 51.7304],
+  voronezh: [39.2006, 51.672],
+  rostov: [39.7015, 47.2357],
+  taganrog: [38.9354, 47.2362],
+  shebekino: [36.87, 50.41],
+  valuyki: [38.11, 50.21],
+  millerovo: [40.4, 48.92],
+  novocherkassk: [40.1, 47.42],
+  chuhuiv: [36.688, 49.835],
+  izium: [37.257, 49.209],
+  kupyansk: [37.617, 49.71],
+  lyptsi: [36.366, 50.206],
+  grayvoron: [35.666, 50.477],
+  "stary-oskol": [37.835, 51.297],
+  pavlohrad: [35.87, 48.534],
+  pokrovsk: [37.176, 48.282],
+  huliaipole: [36.256, 47.664],
+  sloviansk: [37.625, 48.853],
+  kamensk: [40.268, 48.321],
+  shakhty: [40.206, 47.709],
+  aksai: [39.866, 47.26],
+};
+
+function s(key: string, typeId: SiteTypeId, side: SideId, name: string): SiteBlueprint {
+  const [lon, lat] = LL[key]!;
+  return { key, typeId, side, lon, lat, name };
 }
 
-function slot(key: string, side: SideId, x: number, y: number, name: string): SiteSlot {
-  return { key, side, x, y, name };
+function slot(key: string, side: SideId, name: string): SiteSlot {
+  const [lon, lat] = LL[key]!;
+  return { key, side, lon, lat, name };
 }
 
 const ATTR = "Natural Earth 50m · LoC Aug 2026 (approx.) · internationally recognized borders";
@@ -56,27 +87,27 @@ export const THEATERS: Record<TheaterId, Theater> = {
     mapSrc: assetUrl("/game/maps/front.jpg"),
     attribution: ATTR,
     sites: [
-      s("kyiv", "hq", "west", 989, 428, "Kyiv"),
-      s("rostov", "hq", "east", 2079, 895, "Rostov-on-Don"),
+      s("kyiv", "hq", "west", "Kyiv"),
+      s("kharkiv", "factory", "west", "Kharkiv"),
+      s("dnipro", "airfield", "west", "Dnipro"),
+      s("poltava", "ammo", "west", "Poltava"),
+      s("rostov", "hq", "east", "Rostov-on-Don"),
+      s("belgorod", "factory", "east", "Belgorod"),
+      s("taganrog", "airfield", "east", "Taganrog"),
+      s("millerovo", "ammo", "east", "Millerovo"),
     ],
     slots: [
-      slot("kharkiv", "west", 1667, 495, "Kharkiv"),
-      slot("dnipro", "west", 1526, 716, "Dnipro"),
-      slot("zaporizhzhia", "west", 1537, 807, "Zaporizhzhia"),
-      slot("odesa", "west", 1013, 1004, "Odesa"),
-      slot("poltava", "west", 1468, 553, "Poltava"),
-      slot("mykolaiv", "west", 1164, 933, "Mykolaiv"),
-      slot("kramatorsk", "west", 1828, 677, "Kramatorsk"),
-      slot("sumy", "west", 1497, 362, "Sumy"),
-      slot("chernihiv", "west", 1080, 276, "Chernihiv"),
-      slot("belgorod", "east", 1709, 407, "Belgorod"),
-      slot("kursk", "east", 1662, 242, "Kursk"),
-      slot("voronezh", "east", 2020, 251, "Voronezh"),
-      slot("taganrog", "east", 1988, 895, "Taganrog"),
-      slot("millerovo", "east", 2162, 650, "Millerovo"),
-      slot("valuyki", "east", 1890, 463, "Valuyki"),
-      slot("novocherkassk", "east", 2127, 868, "Novocherkassk"),
-      slot("shebekino", "east", 1748, 434, "Shebekino"),
+      slot("zaporizhzhia", "west", "Zaporizhzhia"),
+      slot("odesa", "west", "Odesa"),
+      slot("mykolaiv", "west", "Mykolaiv"),
+      slot("kramatorsk", "west", "Kramatorsk"),
+      slot("sumy", "west", "Sumy"),
+      slot("chernihiv", "west", "Chernihiv"),
+      slot("kursk", "east", "Kursk"),
+      slot("voronezh", "east", "Voronezh"),
+      slot("valuyki", "east", "Valuyki"),
+      slot("novocherkassk", "east", "Novocherkassk"),
+      slot("shebekino", "east", "Shebekino"),
     ],
   },
   north: {
@@ -87,22 +118,22 @@ export const THEATERS: Record<TheaterId, Theater> = {
     mapSrc: assetUrl("/game/maps/north.jpg"),
     attribution: ATTR,
     sites: [
-      s("kharkiv", "hq", "west", 1226, 850, "Kharkiv"),
-      s("belgorod", "hq", "east", 1340, 641, "Belgorod"),
+      s("kharkiv", "hq", "west", "Kharkiv"),
+      s("sumy", "factory", "west", "Sumy"),
+      s("chuhuiv", "airfield", "west", "Chuhuiv"),
+      s("belgorod", "hq", "east", "Belgorod"),
+      s("shebekino", "factory", "east", "Shebekino"),
+      s("valuyki", "airfield", "east", "Valuyki"),
     ],
     slots: [
-      slot("sumy", "west", 767, 534, "Sumy"),
-      slot("poltava", "west", 688, 991, "Poltava"),
-      slot("izium", "west", 1565, 1122, "Izium"),
-      slot("kupyansk", "west", 1638, 948, "Kupiansk"),
-      slot("chuhuiv", "west", 1372, 905, "Chuhuiv"),
-      slot("lyptsi", "west", 1100, 720, "Lyptsi"),
-      slot("kursk", "east", 1212, 249, "Kursk"),
-      slot("voronezh", "east", 2176, 269, "Voronezh"),
-      slot("stary-oskol", "east", 1741, 399, "Stary Oskol"),
-      slot("valuyki", "east", 1826, 776, "Valuyki"),
-      slot("shebekino", "east", 1444, 706, "Shebekino"),
-      slot("grayvoron", "west", 985, 683, "Grayvoron"),
+      slot("poltava", "west", "Poltava"),
+      slot("izium", "west", "Izium"),
+      slot("kupyansk", "west", "Kupiansk"),
+      slot("lyptsi", "west", "Lyptsi"),
+      slot("grayvoron", "west", "Grayvoron"),
+      slot("kursk", "east", "Kursk"),
+      slot("voronezh", "east", "Voronezh"),
+      slot("stary-oskol", "east", "Stary Oskol"),
     ],
   },
   south: {
@@ -113,22 +144,22 @@ export const THEATERS: Record<TheaterId, Theater> = {
     mapSrc: assetUrl("/game/maps/south.jpg"),
     attribution: ATTR,
     sites: [
-      s("dnipro", "hq", "west", 356, 370, "Dnipro"),
-      s("rostov", "hq", "east", 1941, 830, "Rostov-on-Don"),
+      s("dnipro", "hq", "west", "Dnipro"),
+      s("zaporizhzhia", "factory", "west", "Zaporizhzhia"),
+      s("kramatorsk", "airfield", "west", "Kramatorsk"),
+      s("rostov", "hq", "east", "Rostov-on-Don"),
+      s("taganrog", "factory", "east", "Taganrog"),
+      s("novocherkassk", "airfield", "east", "Novocherkassk"),
     ],
     slots: [
-      slot("zaporizhzhia", "west", 388, 604, "Zaporizhzhia"),
-      slot("kramatorsk", "west", 1220, 267, "Kramatorsk"),
-      slot("pavlohrad", "west", 637, 344, "Pavlohrad"),
-      slot("pokrovsk", "west", 1082, 438, "Pokrovsk"),
-      slot("huliaipole", "west", 768, 670, "Huliaipole"),
-      slot("sloviansk", "west", 1234, 224, "Sloviansk"),
-      slot("taganrog", "east", 1680, 830, "Taganrog"),
-      slot("millerovo", "east", 2178, 197, "Millerovo"),
-      slot("novocherkassk", "east", 2077, 761, "Novocherkassk"),
-      slot("kamensk", "east", 2135, 424, "Kamensk-Shakhtinsky"),
-      slot("shakhty", "east", 2114, 653, "Shakhty"),
-      slot("aksai", "east", 1855, 713, "Aksai"),
+      slot("pavlohrad", "west", "Pavlohrad"),
+      slot("pokrovsk", "west", "Pokrovsk"),
+      slot("huliaipole", "west", "Huliaipole"),
+      slot("sloviansk", "west", "Sloviansk"),
+      slot("millerovo", "east", "Millerovo"),
+      slot("kamensk", "east", "Kamensk-Shakhtinsky"),
+      slot("shakhty", "east", "Shakhty"),
+      slot("aksai", "east", "Aksai"),
     ],
   },
 };

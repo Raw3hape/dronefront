@@ -1,4 +1,4 @@
-import { BUILD_ORDER, DIFFICULTIES, DRONE_TYPES, THEATERS, canAfford } from "@/game/catalog";
+import { BUILD_ORDER, DIFFICULTIES, DRONE_TYPES, SITE_TYPES, THEATERS, canAfford, projectOwned } from "@/game/catalog";
 import { OTHER_SIDE } from "@/game/catalog/factions";
 import { enqueue } from "@/game/sim/spawn";
 import { placeSite } from "@/game/sim/build";
@@ -72,13 +72,15 @@ function tryBotBuild(world: World, bot: World["playerSide"]): void {
   const typeId = pickBuildType(world, bot);
   if (!BUILD_ORDER.includes(typeId)) return;
   const t = THEATERS[world.theaterId];
-  const open = t.slots.filter((sl) => {
-    if (sl.side !== bot) return false;
-    return !world.sites.some((s) => Math.hypot(s.x - sl.x, s.y - sl.y) < MIN_SITE_GAP);
+  const open = t.slots.flatMap((sl) => {
+    if (sl.side !== bot) return [];
+    const p = projectOwned(world.theaterId, sl.lon, sl.lat, sl.side);
+    if (world.sites.some((s) => Math.hypot(s.x - p.x, s.y - p.y) < MIN_SITE_GAP)) return [];
+    return [{ name: sl.name, x: p.x, y: p.y }];
   });
   if (open.length === 0) return;
   let sl = open[Math.floor(nextRng(world) * open.length)]!;
-  if (typeId === "aa" || typeId === "ew") {
+  if (SITE_TYPES[typeId].isAa || typeId === "ew") {
     const hq = world.sites.find((s) => s.alive && s.side === bot && s.typeId === "hq");
     if (hq) {
       open.sort((a, b) => Math.hypot(a.x - hq.x, a.y - hq.y) - Math.hypot(b.x - hq.x, b.y - hq.y));

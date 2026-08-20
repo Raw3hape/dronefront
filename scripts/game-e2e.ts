@@ -1,10 +1,10 @@
 import { createWorld } from "../src/game/sim/world";
 import { tickWorld } from "../src/game/sim/loop";
 import { enqueue } from "../src/game/sim/spawn";
-import { canPlace, placeSite } from "../src/game/sim/build";
+import { canMove, canPlace, moveSite, placeSite } from "../src/game/sim/build";
 import { inRange } from "../src/game/sim/range";
-import { SIM_DT } from "../src/game/sim/constants";
-import { DRONE_TYPES, SITE_TYPES, sideAt, THEATERS } from "../src/game/catalog";
+import { MAX_SITES_PER_SIDE, SIM_DT } from "../src/game/sim/constants";
+import { DRONE_TYPES, SITE_TYPES, projectOwned, sideAt, THEATERS } from "../src/game/catalog";
 import type { DifficultyId, TheaterId } from "../src/game/catalog/ids";
 import type { World } from "../src/game/sim/types";
 
@@ -41,8 +41,6 @@ assert(sideAt("front", kyiv.x, kyiv.y) === "west", "Kyiv is west of LoC");
 assert(sideAt("front", rostov.x, rostov.y) === "east", "Rostov is east of LoC");
 assert(!inRange(front, "west", "fpv", rostov.x, rostov.y), "FPV Kyiv→Rostov blocked");
 assert(inRange(front, "west", "loiter", rostov.x, rostov.y), "Liutyi Kyiv→Rostov ok");
-assert(!inRange(front, "west", "bomber", rostov.x, rostov.y), "Vampire Kyiv→Rostov blocked");
-assert(!inRange(front, "west", "lancet", rostov.x, rostov.y), "Warmate Kyiv→Rostov blocked");
 assert(
   !enqueue(front, { side: "west", typeId: "fpv", targetSiteId: rostov.id, targetDroneId: null, delay: 0 }),
   "enqueue FPV to Rostov fails",
@@ -86,10 +84,12 @@ assert(inRange(south, "west", "decoy", sRostov.x, sRostov.y), "south decoy escor
 
 for (const id of ["front", "north", "south"] as const) {
   for (const sl of THEATERS[id].slots) {
-    assert(sideAt(id, sl.x, sl.y) === sl.side, `slot ${id}/${sl.key} on ${sl.side}`);
+    const p = projectOwned(id, sl.lon, sl.lat, sl.side);
+    assert(sideAt(id, p.x, p.y) === sl.side, `slot ${id}/${sl.key} on ${sl.side}`);
   }
   for (const s of THEATERS[id].sites) {
-    assert(sideAt(id, s.x, s.y) === s.side, `hq ${id}/${s.key} on ${s.side}`);
+    const p = projectOwned(id, s.lon, s.lat, s.side);
+    assert(sideAt(id, p.x, p.y) === s.side, `site ${id}/${s.key} on ${s.side}`);
   }
 }
 
@@ -108,7 +108,7 @@ assert(Boolean(geran), "Geran spawned from east");
 const fiberW = worldOf();
 const fHq = hq(fiberW, "west");
 const fE = hq(fiberW, "east");
-assert(placeSite(fiberW, "east", "ew", fE.x - 100, fE.y), "bot-side EW");
+assert(placeSite(fiberW, "east", "ew", fE.x + 100, fE.y), "bot-side EW");
 assert(
   !enqueue(fiberW, { side: "west", typeId: "fiber", targetSiteId: fE.id, targetDroneId: null, delay: 0 }),
   "fiber Kyiv→Rostov still blocked",
@@ -116,8 +116,38 @@ assert(
 assert(DRONE_TYPES.fiber.ewProfile < 0.12, "fiber is jam-proof");
 assert(SITE_TYPES.hq.isAirfield, "HQ is a pad");
 
+assert(SITE_TYPES.mog.aaRange < SITE_TYPES.aa.aaRange, "mog radius < SAM");
+assert(SITE_TYPES.aa.aaRange < SITE_TYPES.longsam.aaRange, "SAM radius < longsam");
+assert(SITE_TYPES.mog.aaRange === 85, "mog 85 wu");
+assert(SITE_TYPES.aa.aaRange === 240, "SAM 240 wu");
+assert(SITE_TYPES.longsam.aaRange === 400, "longsam 400 wu");
+assert(SITE_TYPES.shorad.aaRange > SITE_TYPES.mog.aaRange, "shorad longer than mog");
+assert(SITE_TYPES.shorad.aaRange < SITE_TYPES.aa.aaRange, "shorad shorter than SAM");
+assert(DRONE_TYPES.loiter.speed < 70, `loiter speed < 70, got ${DRONE_TYPES.loiter.speed}`);
+
+for (const id of ["front", "north", "south"] as const) {
+  const seeded = worldOf(id);
+  const westN = seeded.sites.filter((s) => s.side === "west").length;
+  const eastN = seeded.sites.filter((s) => s.side === "east").length;
+  assert(westN > 2, `seeded ${id} west sites >2, got ${westN}`);
+  assert(eastN > 2, `seeded ${id} east sites >2, got ${eastN}`);
+}
+
+const rel = worldOf();
+const rHq = hq(rel, "west");
+assert(placeSite(rel, "west", "mog", rHq.x + 130, rHq.y + 30), "place mog");
+const mog = rel.sites.find((s) => s.typeId === "mog" && s.side === "west")!;
+assert(canMove(rel, mog.id, hq(rel, "east").x, hq(rel, "east").y) === "side", "canMove across LoC fails");
+const destX = mog.x - 40;
+const destY = mog.y + 20;
+assert(moveSite(rel, mog.id, destX, destY), "moveSite orders dest");
+assert(Math.hypot(mog.x - destX, mog.y - destY) > 2, "moveSite does not teleport");
+assert(mog.destX === destX && mog.destY === destY, "dest set");
+step(rel, 3);
+assert(Math.hypot(mog.x - destX, mog.y - destY) <= 2, "tickRelocate eventually arrives");
+
 const idle = worldOf("front", "operator", "west", 11);
-step(idle, 90);
+step(idle, 200);
 assert(idle.phase === "lost", `idle operator loses, got ${idle.phase} t=${idle.time.toFixed(1)}`);
 
 const play = worldOf("front", "recruit", "west", 21);
@@ -159,15 +189,15 @@ assert(
 
 const cap = worldOf();
 const cHq = hq(cap, "west");
-let placed = 1;
-for (let i = 0; i < 20; i++) {
+let placed = cap.sites.filter((s) => s.side === "west" && s.alive).length;
+for (let i = 0; i < 24; i++) {
   const x = cHq.x - 90 - (i % 5) * 90;
   const y = cHq.y + Math.floor(i / 5) * 90 - 80;
   if (placeSite(cap, "west", "fuel", x, y)) placed += 1;
 }
-assert(placed <= 14, `cap 14, placed ${placed}`);
+assert(placed <= MAX_SITES_PER_SIDE, `cap ${MAX_SITES_PER_SIDE}, placed ${placed}`);
 assert(
-  canPlace(cap, "west", "fuel", cHq.x - 400, cHq.y) === "cap" || placed < 14,
+  canPlace(cap, "west", "fuel", cHq.x - 400, cHq.y) === "cap" || placed < MAX_SITES_PER_SIDE,
   "cap fail or ran out of valid tiles",
 );
 

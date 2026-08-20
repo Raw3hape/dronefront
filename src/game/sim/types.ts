@@ -13,6 +13,8 @@ export interface SiteState {
   name: string;
   x: number;
   y: number;
+  destX: number;
+  destY: number;
   hp: number;
   maxHp: number;
   fireCd: number;

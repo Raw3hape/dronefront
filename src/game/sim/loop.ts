@@ -7,6 +7,7 @@ import { tickEw } from "./ew-system";
 import { tickCombat } from "./combat";
 import { tickFx } from "./fx";
 import { tickWin } from "./win";
+import { tickRelocate } from "./build";
 import { tickBot } from "@/game/ai/bot";
 import { SITE_TYPES } from "@/game/catalog";
 import { OTHER_SIDE } from "@/game/catalog/factions";
@@ -20,6 +21,7 @@ export function tickWorld(world: World, dt: number): void {
   world.time += dt;
   world.tick += 1;
   tickEconomy(world, dt);
+  tickRelocate(world, dt);
   tickBot(world, dt);
   tickSpawn(world, dt);
   tickEw(world, dt);
