@@ -15,7 +15,8 @@ Do not invent parallel types. Import from `@/game/catalog` and `@/game/sim/types
   geometric epsilons.
 - Theaters, factions, drone types, site types, difficulties: frozen objects.
 - World is a plain serializable object (`World` in `types.ts`).
-- LoC is lon/lat in `catalog/frontline.ts`, projected per theater bbox.
+- LoC is lon/lat in `catalog/loc.json` (baker + sim share it), projected per theater bbox.
+- North of Kupyansk the line is the internationally recognized UA–RU border. North of that vertex is east (Russia) — never a vertical cut through Kursk/Orel.
 
 ## Sides
 

@@ -1,37 +1,19 @@
 import type { SideId, TheaterId } from "./ids";
+import loc from "./loc.json";
 
-const WORLD_W = 2400;
-const WORLD_H = 1350;
+const WORLD_W = loc.world[0];
+const WORLD_H = loc.world[1];
 
 /** WGS84 bbox matching bake-geo-maps.py (west, south, east, north). */
-const BBOX: Record<TheaterId, readonly [number, number, number, number]> = {
-  front: [22.2, 44.1, 42.4, 53.4],
-  north: [32.4, 48.55, 39.9, 52.45],
-  south: [34.0, 45.85, 41.05, 49.45],
-};
+const BBOX = loc.bbox as unknown as Record<TheaterId, readonly [number, number, number, number]>;
 
 /**
- * Aug 2026 LoC, north→south then Dnipro left bank to Kinburn.
- * Occupied Crimea stays EAST. Keep in sync with scripts/bake-geo-maps.py LOC_LL.
+ * Aug 2026 LoC. North of Kupyansk follows the internationally recognized
+ * Ukraine–Russia border (Natural Earth). South of that is the occupation line
+ * through Donbas / Dnipro / Kinburn. Crimea stays EAST.
+ * Single source: catalog/loc.json (baker reads the same file).
  */
-const LOC_LL: ReadonlyArray<readonly [number, number]> = [
-  [35.15, 53.55], [35.12, 52.8], [35.1, 52.2], [35.08, 51.7],
-  [35.02, 51.45], [35.18, 51.3], [35.38, 51.22], [35.5, 51.18],
-  [35.4, 51.1], [35.22, 50.98], [35.45, 50.85], [35.7, 50.72],
-  [36.0, 50.58], [36.3, 50.45], [36.6, 50.35], [36.85, 50.3],
-  [36.95, 50.26], [37.12, 50.12], [37.35, 49.95], [37.52, 49.82],
-  [37.65, 49.72], [37.72, 49.58], [37.76, 49.4], [37.78, 49.22],
-  [37.8, 49.05], [37.81, 48.99], [37.95, 48.92], [38.1, 48.87],
-  [38.02, 48.78], [37.88, 48.66], [37.84, 48.59], [37.74, 48.53],
-  [37.55, 48.45], [37.38, 48.38], [37.22, 48.32], [37.12, 48.28],
-  [37.08, 48.18], [37.15, 48.08], [37.26, 47.99], [37.22, 47.88],
-  [37.05, 47.8], [36.8, 47.74], [36.5, 47.7], [36.28, 47.66],
-  [36.1, 47.62], [35.92, 47.58], [35.8, 47.56], [35.55, 47.52],
-  [35.25, 47.5], [34.9, 47.46], [34.55, 47.38], [34.2, 47.22],
-  [33.85, 47.05], [33.5, 46.9], [33.15, 46.75], [32.85, 46.65],
-  [32.62, 46.58], [32.35, 46.48], [32.05, 46.38], [31.8, 46.28],
-  [31.6, 46.1], [31.52, 45.7], [31.5, 45.2], [31.5, 44.5], [31.5, 43.9],
-];
+const LOC_LL = loc.ll as unknown as ReadonlyArray<readonly [number, number]>;
 
 export interface Pt {
   x: number;
@@ -98,7 +80,8 @@ export function locLine(theaterId: TheaterId): Pt[] {
 
 function locXAtY(pts: Pt[], y: number): number {
   if (pts.length < 2) return WORLD_W * 0.5;
-  if (y <= pts[0]!.y) return pts[0]!.x;
+  // North of the LoC is Russia — do not extend a vertical line through Kursk/Orel.
+  if (y < pts[0]!.y) return 0;
   const last = pts[pts.length - 1]!;
   if (y >= last.y) return last.x;
   for (let i = 0; i < pts.length - 1; i++) {

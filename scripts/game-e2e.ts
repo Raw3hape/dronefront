@@ -4,7 +4,8 @@ import { enqueue } from "../src/game/sim/spawn";
 import { canMove, canPlace, moveSite, placeSite } from "../src/game/sim/build";
 import { inRange } from "../src/game/sim/range";
 import { MAX_SITES_PER_SIDE, SIM_DT } from "../src/game/sim/constants";
-import { DRONE_TYPES, SITE_TYPES, projectOwned, sideAt, THEATERS } from "../src/game/catalog";
+import { DRONE_TYPES, SITE_TYPES, projectLl, projectOwned, sideAt, THEATERS } from "../src/game/catalog";
+import loc from "../src/game/catalog/loc.json";
 import type { DifficultyId, TheaterId } from "../src/game/catalog/ids";
 import type { World } from "../src/game/sim/types";
 
@@ -72,6 +73,14 @@ assert(sideAt("north", kh.x, kh.y) === "west", "Kharkiv west");
 assert(sideAt("north", bel.x, bel.y) === "east", "Belgorod east");
 assert(inRange(north, "west", "fpv", bel.x, bel.y), "north FPV reaches Belgorod");
 assert(inRange(north, "west", "fiber", bel.x, bel.y), "north fiber reaches Belgorod");
+const kursk = projectLl(36.1874, 51.7304, "front");
+assert(sideAt("front", kursk.x, kursk.y) === "east", "Kursk is east of the international border");
+const orel = projectLl(36.08, 52.97, "front");
+assert(sideAt("front", orel.x, orel.y) === "east", "Orel stays east — LoC does not cut Russia");
+assert(
+  loc.ll.every((p) => p[1] <= 52.4),
+  "LoC vertices stay on/south of the internationally recognized border",
+);
 
 const south = worldOf("south");
 const dnipro = hq(south, "west");

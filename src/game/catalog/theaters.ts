@@ -130,7 +130,7 @@ export const THEATERS: Record<TheaterId, Theater> = {
       slot("izium", "west", "Izium"),
       slot("kupyansk", "west", "Kupiansk"),
       slot("lyptsi", "west", "Lyptsi"),
-      slot("grayvoron", "west", "Grayvoron"),
+      slot("grayvoron", "east", "Grayvoron"),
       slot("kursk", "east", "Kursk"),
       slot("voronezh", "east", "Voronezh"),
       slot("stary-oskol", "east", "Stary Oskol"),
