@@ -38,6 +38,12 @@ THEATERS = {
         "ua": (35.55, 47.95),
         "ru": (39.55, 47.55),
     },
+    "depth": {
+        "bbox": tuple(LOC_SRC["bbox"]["depth"]),
+        "title": "UKRAINE  —  EUROPEAN RUSSIA",
+        "ua": (31.2, 48.6),
+        "ru": (44.5, 55.8),
+    },
 }
 
 FILL = {
@@ -80,7 +86,86 @@ SITES = [
     ("millerovo", 40.40, 48.92, "Millerovo"),
     ("novocherkassk", 40.10, 47.42, "Novocherkassk"),
     ("chuhuiv", 36.688, 49.835, "Chuhuiv"),
+    ("moscow", 37.6173, 55.7558, "Moscow"),
+    ("spb", 30.3351, 59.9343, "St. Petersburg"),
+    ("kazan", 49.1221, 55.7887, "Kazan"),
+    ("nizhny", 44.0056, 56.3269, "Nizhny Novgorod"),
+    ("samara", 50.1002, 53.1959, "Samara"),
+    ("volgograd", 44.5133, 48.7080, "Volgograd"),
+    ("ekaterinburg", 60.6122, 56.8519, "Yekaterinburg"),
+    ("krasnodar", 38.9769, 45.0355, "Krasnodar"),
+    ("tula", 37.6178, 54.1930, "Tula"),
+    ("bryansk", 34.3717, 53.2434, "Bryansk"),
+    ("engels", 46.1258, 51.4853, "Engels"),
+    ("kaliningrad", 20.4522, 54.7104, "Kaliningrad"),
+    ("vinnytsia", 28.4682, 49.2331, "Vinnytsia"),
+    ("sochi", 39.7231, 43.5996, "Sochi"),
 ]
+
+# Extra sites only appear on the depth theater so front/north/south stay unchanged.
+DEPTH_KEYS = {
+    "moscow",
+    "spb",
+    "kazan",
+    "nizhny",
+    "samara",
+    "volgograd",
+    "ekaterinburg",
+    "krasnodar",
+    "tula",
+    "bryansk",
+    "engels",
+    "kaliningrad",
+    "vinnytsia",
+    "sochi",
+}
+KEEP_LABELS = {
+    "moscow",
+    "kyiv",
+    "rostov",
+    "spb",
+    "ekaterinburg",
+    "kazan",
+    "volgograd",
+    "lviv",
+    "odesa",
+}
+MAJOR_RIVERS = (
+    "Volga",
+    "Kama",
+    "Oka",
+    "Neva",
+    "Kuban",
+    "Ural",
+    "Don",
+    "Dnipro",
+    "Dnieper",
+    "Danube",
+    "Dniester",
+)
+OTHER_ISO = (
+    "BLR",
+    "POL",
+    "ROU",
+    "MDA",
+    "SVK",
+    "HUN",
+    "GEO",
+    "TUR",
+    "KAZ",
+    "EST",
+    "LVA",
+    "LTU",
+    "FIN",
+    "SWE",
+    "NOR",
+    "AZE",
+    "ARM",
+    "IRN",
+    "CZE",
+    "BGR",
+    "SRB",
+)
 
 # LoC from catalog/loc.json (same source as frontline.ts)
 
@@ -187,7 +272,7 @@ def draw_rivers(draw, rivers, bbox, fill, major_w, minor_w):
             ys = [p[1] for p in pts]
             if max(xs) < 0 or min(xs) > RW or max(ys) < 0 or min(ys) > RH:
                 continue
-            width = major_w if any(k in name for k in ("Dnipro", "Don", "Danube", "Dniester")) else minor_w
+            width = major_w if any(k in name for k in MAJOR_RIVERS) else minor_w
             draw.line(pts, fill=fill, width=width)
 
 
@@ -201,14 +286,24 @@ def draw_loc(draw, bbox):
     draw.line(pts, fill=LOC_DASH, width=2)
 
 
-def draw_cities(draw, bbox, font_city):
-    for _key, lon, lat, label in SITES:
+def draw_cities(draw, bbox, font_city, collide=False):
+    placed = []
+    sites = SITES
+    if collide:
+        sites = sorted(SITES, key=lambda s: (0 if s[0] in KEEP_LABELS else 1))
+    for key, lon, lat, label in sites:
+        if not collide and key in DEPTH_KEYS:
+            continue
         x, y = project(lon, lat, bbox, RW, RH)
         if x < 28 or x > RW - 28 or y < 28 or y > RH - 28:
             continue
-        r = 7 * SCALE
-        draw.ellipse((x - r, y - r, x + r, y + r), fill=(236, 232, 214, 255), outline=(18, 20, 16, 220), width=2)
+        r = 3 * SCALE
+        draw.ellipse((x - r, y - r, x + r, y + r), fill=(198, 190, 168, 220), outline=(18, 20, 16, 160), width=1)
+        if collide and key not in KEEP_LABELS:
+            if any((x - px) ** 2 + (y - py) ** 2 < 70 ** 2 for px, py in placed):
+                continue
         halo_text(draw, (x + 12 * SCALE, y), label, font_city, (230, 228, 216, 235), (12, 13, 11, 180), "lm")
+        placed.append((x, y))
 
 
 def main() -> None:
@@ -221,7 +316,7 @@ def main() -> None:
         iso = ft["properties"].get("ADM0_A3")
         if iso in ("UKR", "RUS"):
             by_iso[iso] = ft
-        elif iso in ("BLR", "POL", "ROU", "MDA", "SVK", "HUN", "GEO", "TUR", "KAZ"):
+        elif iso in OTHER_ISO:
             others.append(ft)
 
     display = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -271,7 +366,8 @@ def main() -> None:
         halo_text(draw, ru, "RUSSIA", font_lg, (236, 210, 198, 230), (28, 16, 14, 180))
 
         draw_loc(draw, bbox)
-        draw_cities(draw, bbox, font_city)
+        city_font = font(body, 12 * SCALE) if tid == "depth" else font_city
+        draw_cities(draw, bbox, city_font, collide=tid == "depth")
 
         halo_text(draw, (48 * SCALE, 44 * SCALE), spec["title"], font_title, (230, 228, 216, 220), (12, 13, 11, 160), "lt")
         halo_text(

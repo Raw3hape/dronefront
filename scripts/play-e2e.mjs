@@ -32,6 +32,52 @@ try {
   await page.waitForTimeout(400);
   assert((await page.getByRole("heading", { name: "DRONEFRONT" }).count()) > 0, "title heading");
   await page.screenshot({ path: checkedOutputPath(`${outDir}/title.png`, ["/workspace"]) });
+  assert((await page.getByText("Strategic depth").count()) > 0, "depth theater on title");
+
+  await page.goto(`${base.replace(/\/$/, "")}/play?t=depth&s=west&d=recruit`, {
+    waitUntil: "networkidle",
+    timeout: 45000,
+  });
+  await page.waitForSelector("canvas", { timeout: 20000 });
+  await page.waitForTimeout(1400);
+  await page.screenshot({ path: checkedOutputPath(`${outDir}/play-depth.png`, ["/workspace"]) });
+  assert((await page.getByText("Enemy fog").count()) > 0, "depth starts fogged");
+  assert((await page.getByText(/No spotted yards|send Leleka/i).count()) > 0, "recon prompt while fogged");
+  await page.keyboard.press("Digit6");
+  await page.waitForTimeout(300);
+  assert((await page.getByText(/Tap the map to send a scout/i).count()) > 0, "recon waypoint hint");
+  await page.screenshot({ path: checkedOutputPath(`${outDir}/play-depth-recon.png`, ["/workspace"]) });
+  const depthCanvas = page.locator("canvas");
+  const dbox = await depthCanvas.boundingBox();
+  if (dbox) {
+    await page.mouse.click(dbox.x + dbox.width * 0.48, dbox.y + dbox.height * 0.32);
+    await page.waitForTimeout(600);
+  }
+  await page.screenshot({ path: checkedOutputPath(`${outDir}/play-depth-scout.png`, ["/workspace"]) });
+
+  const mobile = await browser.newPage({ viewport: { width: 440, height: 956 } });
+  mobile.on("pageerror", (err) => errors.push(`mobile ${err?.message || err}`));
+  await mobile.goto(`${base.replace(/\/$/, "")}/play?t=depth&s=west&d=recruit`, {
+    waitUntil: "networkidle",
+    timeout: 45000,
+  });
+  await mobile.waitForSelector("canvas", { timeout: 20000 });
+  await mobile.waitForTimeout(800);
+  await mobile.screenshot({ path: checkedOutputPath(`${outDir}/play-depth-mobile.png`, ["/workspace"]) });
+  assert((await mobile.getByText("Enemy fog").count()) > 0, "mobile depth fogged");
+  await mobile.close();
+
+  const east = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  east.on("pageerror", (err) => errors.push(`east ${err?.message || err}`));
+  await east.goto(`${base.replace(/\/$/, "")}/play?t=depth&s=east&d=recruit`, {
+    waitUntil: "networkidle",
+    timeout: 45000,
+  });
+  await east.waitForSelector("canvas", { timeout: 20000 });
+  await east.waitForTimeout(800);
+  await east.screenshot({ path: checkedOutputPath(`${outDir}/play-depth-east.png`, ["/workspace"]) });
+  assert((await east.getByText("Enemy fog").count()) > 0, "east starts with Kyiv fogged");
+  await east.close();
 
   await page.goto(`${base.replace(/\/$/, "")}/play?t=north&s=west&d=recruit`, {
     waitUntil: "networkidle",

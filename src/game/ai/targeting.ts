@@ -49,7 +49,8 @@ export function pickInbound(world: World, side: SideId): number | null {
 export function pickScoutAim(world: World, side: SideId): { x: number; y: number } | null {
   const hidden = world.sites.filter((s) => s.alive && s.side !== side && !siteKnown(s, side));
   if (hidden.length === 0) return null;
-  const pick = hidden[Math.floor(nextRng(world) * hidden.length)]!;
+  hidden.sort((a, b) => SITE_TYPES[b.typeId].value - SITE_TYPES[a.typeId].value);
+  const pick = hidden[0]!;
   return { x: pick.x, y: pick.y };
 }
 
@@ -66,9 +67,11 @@ function pickMix(world: World, inbound: number): DroneTypeId {
 }
 
 export function pickStrikeType(world: World, side: SideId, inbound: number): DroneTypeId {
+  const hq = world.sites.find((s) => s.alive && s.side !== side && s.typeId === "hq");
+  if (hq && !siteKnown(hq, side)) return "recon";
   if (!pickStrikeTarget(world, side)) return "recon";
   const mix = pickMix(world, inbound);
-  if (mix === "interceptor") return mix;
+  if (mix === "interceptor") return pickInbound(world, side) != null ? mix : "loiter";
   if (mix === "recon") return mix;
   if (pickStrikeTarget(world, side, mix)) return mix;
   return "loiter";

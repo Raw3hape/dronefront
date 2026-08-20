@@ -3,7 +3,7 @@ import { angleTo } from "./spatial";
 import { allocDrone } from "./world";
 import { nextRng } from "./rng";
 import { aimOf, inRange, padOf } from "./range";
-import { siteKnown } from "./intel";
+import { droneKnown, siteKnown } from "./intel";
 import type { LaunchOrder, World } from "./types";
 import { burst } from "./fx";
 
@@ -13,6 +13,7 @@ export function enqueue(world: World, order: LaunchOrder): boolean {
   if (type.role === "intercept") {
     const prey = world.drones.find((d) => d.live && d.id === order.targetDroneId);
     if (!prey || prey.side === order.side) return false;
+    if (!droneKnown(world, prey, order.side)) return false;
     if (!inRange(world, order.side, order.typeId, prey.x, prey.y)) return false;
   } else if (type.role === "recon") {
     if (order.wx == null || order.wy == null) return false;

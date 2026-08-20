@@ -3,7 +3,7 @@ import { OTHER_SIDE } from "@/game/catalog/factions";
 import { enqueue } from "@/game/sim/spawn";
 import { placeSite } from "@/game/sim/build";
 import { inRange } from "@/game/sim/range";
-import { MIN_SITE_GAP } from "@/game/sim/constants";
+import { MIN_SITE_GAP, WORLD_H, WORLD_W } from "@/game/sim/constants";
 import { nextRng } from "@/game/sim/rng";
 import { pickInbound, pickStrikeTarget, pickBuildType, pickStrikeType, pickScoutAim } from "./targeting";
 import type { World } from "@/game/sim/types";
@@ -90,6 +90,7 @@ function tryBotBuild(world: World, bot: World["playerSide"]): void {
   const open = t.slots.flatMap((sl) => {
     if (sl.side !== bot) return [];
     const p = projectOwned(world.theaterId, sl.lon, sl.lat, sl.side);
+    if (p.x < 48 || p.y < 48 || p.x > WORLD_W - 48 || p.y > WORLD_H - 48) return [];
     if (world.sites.some((s) => Math.hypot(s.x - p.x, s.y - p.y) < MIN_SITE_GAP)) return [];
     return [{ name: sl.name, x: p.x, y: p.y }];
   });

@@ -50,7 +50,7 @@ export function TitleScreen() {
         <section className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="space-y-5 rounded-xl border border-border bg-elevated/85 p-4 sm:p-5">
             <Field label="Theater">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {THEATER_ORDER.map((id) => {
                   const t = THEATERS[id];
                   const on = id === theaterId;

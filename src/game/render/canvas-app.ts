@@ -70,11 +70,12 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
 
   function hitSite(wx: number, wy: number) {
     let best = null as (typeof world.sites)[number] | null;
-    let bestD = 48 * 48;
+    const minR = Math.max(48, 28 / cam.zoom);
+    let bestD = minR * minR;
     for (const s of world.sites) {
       if (!s.alive) continue;
       if (s.side !== world.playerSide && !siteKnown(s, world.playerSide)) continue;
-      const rad = SITE_TYPES[s.typeId].radius + 10;
+      const rad = Math.max(SITE_TYPES[s.typeId].radius + 10, 28 / cam.zoom);
       const d = dist2(wx, wy, s.x, s.y);
       if (d < rad * rad && d < bestD) {
         best = s;

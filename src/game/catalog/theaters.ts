@@ -63,6 +63,21 @@ const LL: Record<string, readonly [number, number]> = {
   kamensk: [40.268, 48.321],
   shakhty: [40.206, 47.709],
   aksai: [39.866, 47.26],
+  moscow: [37.6173, 55.7558],
+  spb: [30.3351, 59.9343],
+  kazan: [49.1221, 55.7887],
+  nizhny: [44.0056, 56.3269],
+  samara: [50.1002, 53.1959],
+  volgograd: [44.5133, 48.708],
+  ekaterinburg: [60.6122, 56.8519],
+  krasnodar: [38.9769, 45.0355],
+  tula: [37.6178, 54.193],
+  bryansk: [34.3717, 53.2434],
+  engels: [46.1258, 51.4853],
+  kaliningrad: [20.4522, 54.7104],
+  lviv: [24.0297, 49.8397],
+  vinnytsia: [28.4682, 49.2331],
+  sochi: [39.7231, 43.5996],
 };
 
 function s(key: string, typeId: SiteTypeId, side: SideId, name: string): SiteBlueprint {
@@ -78,6 +93,45 @@ function slot(key: string, side: SideId, name: string): SiteSlot {
 const ATTR = "Natural Earth 50m · LoC Aug 2026 (approx.) · internationally recognized borders";
 
 export const THEATERS: Record<TheaterId, Theater> = {
+  depth: {
+    id: "depth",
+    name: "Strategic depth",
+    region: "Ukraine — European Russia",
+    blurb:
+      "Kyiv vs Moscow. Geran / Liutyi reach the capital; FPV does not. North of the LoC is Russia (St. Petersburg, Urals). Kaliningrad is an east exclave. Pacific Russia is off-map.",
+    mapSrc: assetUrl("/game/maps/depth.jpg"),
+    attribution: ATTR,
+    sites: [
+      s("kyiv", "hq", "west", "Kyiv"),
+      s("lviv", "factory", "west", "Lviv"),
+      s("dnipro", "airfield", "west", "Dnipro"),
+      s("kharkiv", "ammo", "west", "Kharkiv"),
+      s("odesa", "fuel", "west", "Odesa"),
+      s("moscow", "hq", "east", "Moscow"),
+      s("rostov", "airfield", "east", "Rostov-on-Don"),
+      s("voronezh", "factory", "east", "Voronezh"),
+      s("engels", "ammo", "east", "Engels"),
+      s("belgorod", "refinery", "east", "Belgorod"),
+    ],
+    slots: [
+      slot("zaporizhzhia", "west", "Zaporizhzhia"),
+      slot("sumy", "west", "Sumy"),
+      slot("chernihiv", "west", "Chernihiv"),
+      slot("mykolaiv", "west", "Mykolaiv"),
+      slot("poltava", "west", "Poltava"),
+      slot("vinnytsia", "west", "Vinnytsia"),
+      slot("spb", "east", "St. Petersburg"),
+      slot("kazan", "east", "Kazan"),
+      slot("volgograd", "east", "Volgograd"),
+      slot("krasnodar", "east", "Krasnodar"),
+      slot("kursk", "east", "Kursk"),
+      slot("ekaterinburg", "east", "Yekaterinburg"),
+      slot("tula", "east", "Tula"),
+      slot("samara", "east", "Samara"),
+      slot("kaliningrad", "east", "Kaliningrad"),
+      slot("sochi", "east", "Sochi"),
+    ],
+  },
   front: {
     id: "front",
     name: "Full theater",
@@ -164,4 +218,4 @@ export const THEATERS: Record<TheaterId, Theater> = {
   },
 };
 
-export const THEATER_ORDER: TheaterId[] = ["front", "north", "south"];
+export const THEATER_ORDER: TheaterId[] = ["depth", "front", "north", "south"];

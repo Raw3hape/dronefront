@@ -26,7 +26,7 @@ const SITE_KEYS = [
   "fuel",
   "rail",
 ] as const;
-const MAP_KEYS = ["front", "north", "south"] as const;
+const MAP_KEYS = ["depth", "front", "north", "south"] as const;
 
 export interface Atlas {
   drones: Record<string, HTMLImageElement>;

@@ -16,13 +16,19 @@ Do not invent parallel types. Import from `@/game/catalog` and `@/game/sim/types
 - Theaters, factions, drone types, site types, difficulties: frozen objects.
 - World is a plain serializable object (`World` in `types.ts`).
 - LoC is lon/lat in `catalog/loc.json` (baker + sim share it), projected per theater bbox.
-- North of Kupyansk the line is the internationally recognized UA–RU border. North of that vertex is east (Russia) — never a vertical cut through Kursk/Orel.
+- Theaters: `depth` (default; Ukraine — European Russia to the Urals), `front`, `north`, `south`.
+  Full Pacific Russia is not a theater — that bbox would collapse FPV range to a postage stamp.
+- North of Kupyansk the line is the internationally recognized UA–RU border. North of that
+  vertex (`y < locLine[0].y`) `locXAtY` returns 0: the whole northern band is east
+  (Moscow, St. Petersburg, Urals). Kaliningrad is an east exclave. Never a vertical cut
+  through Kursk/Orel.
 - Sprites are orthographic top-down (drones nose-up, sites roof-plan, missiles +X) on keyed transparency. Bake with `scripts/chroma-sprites.py` from `assets/sprites/new/<id>/raw-sheet.png`.
 
 ## Sides
 
 - `west` | `east`. Player picks one. The other is the bot.
 - Own ground = `sideAt(theater, x, y)` vs the Aug 2026 LoC, not WORLD_W/2.
+- On `depth`, north of the LoC is east (Moscow, St. Petersburg, Urals). Kaliningrad stays east.
 
 ## Victory
 

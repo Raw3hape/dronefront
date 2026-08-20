@@ -4,8 +4,9 @@ import { enqueue } from "../src/game/sim/spawn";
 import { canMove, canPlace, moveSite, placeSite } from "../src/game/sim/build";
 import { inRange } from "../src/game/sim/range";
 import { droneKnown, inRadar, revealSite, siteKnown } from "../src/game/sim/intel";
-import { MAX_SITES_PER_SIDE, SIM_DT } from "../src/game/sim/constants";
-import { DRONE_TYPES, SITE_TYPES, projectLl, projectOwned, sideAt, THEATERS } from "../src/game/catalog";
+import { MAX_SITES_PER_SIDE, SIM_DT, WORLD_H, WORLD_W } from "../src/game/sim/constants";
+import { DRONE_TYPES, SITE_TYPES, THEATER_ORDER, THEATERS, projectLl, projectOwned, sideAt } from "../src/game/catalog";
+import { pickInbound, pickScoutAim, pickStrikeType } from "../src/game/ai/targeting";
 import loc from "../src/game/catalog/loc.json";
 import type { DifficultyId, TheaterId } from "../src/game/catalog/ids";
 import type { World } from "../src/game/sim/types";
@@ -133,14 +134,53 @@ assert(!inRange(south, "west", "fpv", sRostov.x, sRostov.y), "south FPV cannot r
 assert(inRange(south, "west", "loiter", sRostov.x, sRostov.y), "south Liutyi reaches Rostov");
 assert(inRange(south, "west", "decoy", sRostov.x, sRostov.y), "south decoy escorts Liutyi");
 
-for (const id of ["front", "north", "south"] as const) {
+const depth = worldOf("depth");
+const dKyiv = hq(depth, "west");
+const dMos = hq(depth, "east");
+assert(dKyiv.name === "Kyiv" && dMos.name === "Moscow", "depth HQs are Kyiv and Moscow");
+assert(sideAt("depth", dKyiv.x, dKyiv.y) === "west", "depth Kyiv west");
+assert(sideAt("depth", dMos.x, dMos.y) === "east", "depth Moscow east");
+assert(!siteKnown(dMos, "west"), "Moscow starts fogged");
+assert(!inRange(depth, "west", "fpv", dMos.x, dMos.y), "FPV cannot Kyiv→Moscow");
+assert(!inRange(depth, "west", "fiber", dMos.x, dMos.y), "fiber cannot Kyiv→Moscow");
+assert(inRange(depth, "west", "loiter", dMos.x, dMos.y), "Liutyi Kyiv→Moscow");
+assert(inRange(depth, "east", "loiter", dKyiv.x, dKyiv.y), "Geran Moscow→Kyiv");
+const kalin = projectLl(20.4522, 54.7104, "depth");
+assert(sideAt("depth", kalin.x, kalin.y) === "east", "Kaliningrad is east exclave");
+const yekat = projectOwned("depth", 60.6122, 56.8519, "east");
+assert(sideAt("depth", yekat.x, yekat.y) === "east", "Yekaterinburg east");
+assert(yekat.x <= WORLD_W - 48, "Yekaterinburg inside placeable bounds");
+const spb = projectLl(30.3351, 59.9343, "depth");
+assert(sideAt("depth", spb.x, spb.y) === "east", "St. Petersburg east of LoC band");
+assert(
+  !enqueue(depth, { side: "west", typeId: "loiter", targetSiteId: dMos.id, targetDroneId: null, delay: 0 }),
+  "cannot strike fogged Moscow",
+);
+assert(canPlace(depth, "west", "mog", dMos.x, dMos.y) === "side", "west cannot fortify Moscow");
+assert(depth.sites.filter((s) => s.side === "west").length <= MAX_SITES_PER_SIDE, "depth west seed under cap");
+assert(depth.sites.filter((s) => s.side === "east").length <= MAX_SITES_PER_SIDE, "depth east seed under cap");
+const crimea = projectLl(34.1, 45.35, "depth");
+assert(sideAt("depth", crimea.x, crimea.y) === "east", "Crimea stays east on depth");
+const sochi = projectLl(39.7231, 43.5996, "depth");
+assert(sideAt("depth", sochi.x, sochi.y) === "east", "Sochi east");
+const lviv = projectLl(24.0297, 49.8397, "depth");
+assert(sideAt("depth", lviv.x, lviv.y) === "west", "Lviv west");
+const eastDepth = worldOf("depth", "recruit", "east", 5);
+assert(!siteKnown(hq(eastDepth, "west"), "east"), "east player starts with Kyiv fogged");
+assert(siteKnown(hq(eastDepth, "east"), "east"), "east player sees Moscow");
+assert(pickScoutAim(depth, "west") != null, "scout aim while HQ hidden");
+assert(pickScoutAim(depth, "west")!.x === dMos.x, "scout prefers hidden HQ");
+
+for (const id of THEATER_ORDER) {
   for (const sl of THEATERS[id].slots) {
     const p = projectOwned(id, sl.lon, sl.lat, sl.side);
     assert(sideAt(id, p.x, p.y) === sl.side, `slot ${id}/${sl.key} on ${sl.side}`);
+    assert(p.x >= 48 && p.y >= 48 && p.x <= WORLD_W - 48 && p.y <= WORLD_H - 48, `slot ${id}/${sl.key} in bounds`);
   }
   for (const s of THEATERS[id].sites) {
     const p = projectOwned(id, s.lon, s.lat, s.side);
     assert(sideAt(id, p.x, p.y) === s.side, `site ${id}/${s.key} on ${s.side}`);
+    assert(p.x >= 48 && p.y >= 48 && p.x <= WORLD_W - 48 && p.y <= WORLD_H - 48, `site ${id}/${s.key} in bounds`);
   }
 }
 
@@ -188,12 +228,14 @@ assert(!SITE_TYPES.radar.isAa, "radar is not a battery");
 assert(DRONE_TYPES.recon.spotRange > 0, "Leleka spots");
 assert(DRONE_TYPES.fpv.spotRange === 0, "FPV does not spot");
 
-for (const id of ["front", "north", "south"] as const) {
+for (const id of THEATER_ORDER) {
   const seeded = worldOf(id);
   const westN = seeded.sites.filter((s) => s.side === "west").length;
   const eastN = seeded.sites.filter((s) => s.side === "east").length;
   assert(westN > 2, `seeded ${id} west sites >2, got ${westN}`);
   assert(eastN > 2, `seeded ${id} east sites >2, got ${eastN}`);
+  assert(westN <= MAX_SITES_PER_SIDE, `seeded ${id} west under cap`);
+  assert(eastN <= MAX_SITES_PER_SIDE, `seeded ${id} east under cap`);
 }
 
 const rel = worldOf();
@@ -268,6 +310,11 @@ assert(Boolean(inbound), "inbound exists");
 assert(inbound != null && !droneKnown(rad, inbound, "west"), "no radar → inbound dark");
 assert(placeSite(rad, "west", "radar", radHq.x + 90, radHq.y - 90), "place radar");
 assert(inbound != null && droneKnown(rad, inbound, "west") === inRadar(rad, "west", inbound.x, inbound.y), "contact iff in radar");
+assert(
+  !enqueue(rad, { side: "west", typeId: "interceptor", targetSiteId: null, targetDroneId: inbound!.id, delay: 0 }) ||
+    droneKnown(rad, inbound!, "west"),
+  "cannot hunt a dark contact",
+);
 
 const steer = worldOf("north");
 const stE = hq(steer, "east");
@@ -288,6 +335,10 @@ assert(
   !enqueue(steer, { side: "west", typeId: "recon", targetSiteId: stE.id, targetDroneId: null, delay: 0 }),
   "recon still needs a waypoint, not a site id",
 );
+assert(steer.drones.some((d) => d.live && d.typeId === "recon"), "recon does not kamikaze on launch");
+
+assert(pickStrikeType(worldOf("depth"), "west", 0) === "recon", "bot scouts while enemy HQ is fogged");
+assert(pickInbound(worldOf("north"), "west") == null, "no intercept without a radar picture");
 
 const idle = worldOf("front", "operator", "west", 11);
 step(idle, 200);
@@ -322,6 +373,39 @@ for (let i = 0; i < Math.floor(240 / SIM_DT); i++) {
 assert(play.phase === "won", `recruit push wins, got ${play.phase} t=${play.time.toFixed(1)} ehq=${hq(play, "east").hp}`);
 assert(hq(play, "west").alive, "player HQ lives on recruit win");
 
+const depthIdle = worldOf("depth", "operator", "west", 13);
+step(depthIdle, 220);
+assert(depthIdle.phase === "lost", `idle operator loses on depth, got ${depthIdle.phase} t=${depthIdle.time.toFixed(1)}`);
+assert(hq(depthIdle, "west").hp < hq(depthIdle, "west").maxHp || !hq(depthIdle, "west").alive, "bot found Kyiv");
+
+const depthPush = worldOf("depth", "recruit", "west", 21);
+const dpHq = hq(depthPush, "west");
+const dpE = hq(depthPush, "east");
+placeSite(depthPush, "west", "aa", dpHq.x + 110, dpHq.y);
+placeSite(depthPush, "west", "ew", dpHq.x + 40, dpHq.y + 100);
+know(depthPush, "west");
+let dFire = 0;
+for (let i = 0; i < Math.floor(240 / SIM_DT); i++) {
+  dFire -= SIM_DT;
+  if (dFire <= 0 && depthPush.phase === "play") {
+    if (
+      enqueue(depthPush, {
+        side: "west",
+        typeId: "loiter",
+        targetSiteId: dpE.id,
+        targetDroneId: null,
+        delay: 0,
+      })
+    ) {
+      dFire = 2.1;
+    }
+  }
+  tickWorld(depthPush, SIM_DT);
+  if (depthPush.phase !== "play") break;
+}
+assert(depthPush.phase === "won", `depth recruit push wins, got ${depthPush.phase} t=${depthPush.time.toFixed(1)}`);
+assert(hq(depthPush, "west").alive, "player HQ lives on depth win");
+
 const dead = worldOf();
 const dE = hq(dead, "east");
 dE.alive = false;
@@ -355,4 +439,6 @@ console.log("ok", {
   southDist: Math.round(Math.hypot(sRostov.x - dnipro.x, sRostov.y - dnipro.y)),
   idleT: +idle.time.toFixed(1),
   winT: +play.time.toFixed(1),
+  depthIdleT: +depthIdle.time.toFixed(1),
+  depthWinT: +depthPush.time.toFixed(1),
 });

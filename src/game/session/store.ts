@@ -44,7 +44,7 @@ function load(): Partial<SessionState> {
     if (!raw) return {};
     const p = JSON.parse(raw) as Partial<SessionState>;
     return {
-      theaterId: THEATER_ORDER.includes(p.theaterId as TheaterId) ? (p.theaterId as TheaterId) : "front",
+      theaterId: THEATER_ORDER.includes(p.theaterId as TheaterId) ? (p.theaterId as TheaterId) : "depth",
       playerSide: p.playerSide === "east" ? "east" : "west",
       difficultyId: DIFFICULTY_ORDER.includes(p.difficultyId as DifficultyId)
         ? (p.difficultyId as DifficultyId)
@@ -58,7 +58,7 @@ function load(): Partial<SessionState> {
 
 export const useSession = create<SessionState>((set, get) => ({
   ui: "menu",
-  theaterId: "front",
+  theaterId: "depth",
   playerSide: "west",
   difficultyId: "operator",
   selected: DRONE_ORDER[0],

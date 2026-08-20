@@ -23,7 +23,7 @@ export type SiteTypeId =
   | "ew"
   | "radar"
   | "rail";
-export type TheaterId = "front" | "north" | "south";
+export type TheaterId = "depth" | "front" | "north" | "south";
 export type DifficultyId = "recruit" | "operator" | "veteran";
 export type DroneRole = "strike" | "intercept" | "recon" | "decoy";
 export type StockId = "parts" | "fuel" | "warheads" | "electronics";
