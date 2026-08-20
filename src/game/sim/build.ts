@@ -15,7 +15,7 @@ function countSide(world: World, side: SideId): number {
   return n;
 }
 
-function inBounds(x: number, y: number): boolean {
+export function inBounds(x: number, y: number): boolean {
   return x >= 48 && y >= 48 && x <= WORLD_W - 48 && y <= WORLD_H - 48;
 }
 

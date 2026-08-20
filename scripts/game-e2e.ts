@@ -10,6 +10,7 @@ import { pickInbound, pickScoutAim, pickStrikeType } from "../src/game/ai/target
 import loc from "../src/game/catalog/loc.json";
 import type { DifficultyId, TheaterId } from "../src/game/catalog/ids";
 import type { World } from "../src/game/sim/types";
+import { tickWin } from "../src/game/sim/win";
 
 let fails = 0;
 function assert(cond: boolean, msg: string): void {
@@ -339,6 +340,26 @@ assert(steer.drones.some((d) => d.live && d.typeId === "recon"), "recon does not
 
 assert(pickStrikeType(worldOf("depth"), "west", 0) === "recon", "bot scouts while enemy HQ is fogged");
 assert(pickInbound(worldOf("north"), "west") == null, "no intercept without a radar picture");
+assert(WORLD_W === loc.world[0] && WORLD_H === loc.world[1], "sim world size is loc.json");
+
+const acq = worldOf("north");
+const acqHq = hq(acq, "west");
+const acqE = hq(acq, "east");
+know(acq, "east");
+assert(enqueue(acq, { side: "east", typeId: "fpv", targetSiteId: acqHq.id, targetDroneId: null, delay: 0 }), "dark FPV for acquire");
+step(acq, 0.4);
+const acqPrey = acq.drones.find((d) => d.live && d.side === "east")!;
+assert(Boolean(acqPrey) && !droneKnown(acq, acqPrey, "west"), "acquire prey is dark");
+assert(enqueue(acq, { side: "west", typeId: "recon", targetSiteId: null, targetDroneId: null, wx: acqHq.x + 80, wy: acqHq.y, delay: 0 }), "west bird");
+step(acq, 0.5);
+const kite = acq.drones.find((d) => d.live && d.side === "west")!;
+assert(Boolean(kite), "west bird airborne");
+kite.typeId = "interceptor";
+kite.targetDroneId = null;
+kite.life = "hunt";
+kite.fuel = DRONE_TYPES.interceptor.range;
+tickWorld(acq, SIM_DT);
+assert(kite.targetDroneId !== acqPrey.id, "airborne interceptor does not acquire a dark contact");
 
 const idle = worldOf("front", "operator", "west", 11);
 step(idle, 200);
@@ -428,6 +449,185 @@ assert(
   canPlace(cap, "west", "fuel", cHq.x - 400, cHq.y) === "cap" || placed < MAX_SITES_PER_SIDE,
   "cap fail or ran out of valid tiles",
 );
+
+const FPV_HQ: Record<TheaterId, boolean> = { north: true, front: false, south: false, depth: false };
+for (const id of THEATER_ORDER) {
+  for (const player of ["west", "east"] as const) {
+    const w = worldOf(id, "recruit", player, 7);
+    const own = hq(w, player);
+    const enemy = hq(w, player === "west" ? "east" : "west");
+    const tag = `${id}/${player}`;
+    assert(siteKnown(own, player), `${tag} own HQ known at start`);
+    assert(!siteKnown(enemy, player), `${tag} enemy HQ fogged at start`);
+    assert(sideAt(id, own.x, own.y) === player, `${tag} HQ on own side of LoC`);
+    assert(sideAt(id, enemy.x, enemy.y) !== player, `${tag} enemy HQ on far side`);
+    assert(inRange(w, player, "loiter", enemy.x, enemy.y), `${tag} loiter reaches enemy HQ`);
+    assert(
+      inRange(w, player, "fpv", enemy.x, enemy.y) === FPV_HQ[id],
+      `${tag} FPV HQ reach expected ${FPV_HQ[id]}, got ${inRange(w, player, "fpv", enemy.x, enemy.y)}`,
+    );
+    assert(
+      inRange(w, player, "fiber", enemy.x, enemy.y) === FPV_HQ[id],
+      `${tag} fiber HQ reach expected ${FPV_HQ[id]}`,
+    );
+    const nOwn = w.sites.filter((s) => s.side === player && s.alive).length;
+    const nEnemy = w.sites.filter((s) => s.side !== player && s.alive).length;
+    assert(nOwn <= MAX_SITES_PER_SIDE, `${tag} own seed under cap, got ${nOwn}`);
+    assert(nEnemy <= MAX_SITES_PER_SIDE, `${tag} enemy seed under cap, got ${nEnemy}`);
+    assert(canPlace(w, player, "mog", enemy.x, enemy.y) === "side", `${tag} cannot fortify enemy HQ`);
+    assert(pickStrikeType(w, player, 0) === "recon", `${tag} bot mix is recon while enemy HQ fogged`);
+    assert(pickStrikeType(w, player, 4) === "recon", `${tag} still recon while HQ fogged even with inbound`);
+  }
+}
+
+const frontCrimea = projectLl(34.1, 45.35, "front");
+assert(sideAt("front", frontCrimea.x, frontCrimea.y) === "east", "Crimea stays east on front");
+const frontLviv = projectLl(24.0297, 49.8397, "front");
+assert(sideAt("front", frontLviv.x, frontLviv.y) === "west", "Lviv west on front");
+assert(sideAt("depth", kalin.x, kalin.y) === "east", "Kaliningrad east exclave (repeat)");
+assert(yekat.x >= 48 && yekat.x <= WORLD_W - 48 && yekat.y >= 48 && yekat.y <= WORLD_H - 48, "Yekaterinburg in bounds");
+
+const recFact = worldOf("north");
+recFact.botCd = 1e9;
+recFact.botBuildCd = 1e9;
+const sheb = recFact.sites.find((s) => s.side === "east" && s.typeId === "factory")!;
+assert(Boolean(sheb) && !siteKnown(sheb, "west"), "east factory starts fogged");
+assert(
+  enqueue(recFact, { side: "west", typeId: "recon", targetSiteId: sheb.id, targetDroneId: null, delay: 0 }) === false,
+  "recon needs waypoint, not a factory site id",
+);
+assert(
+  enqueue(recFact, { side: "west", typeId: "recon", targetSiteId: null, targetDroneId: null, wx: sheb.x, wy: sheb.y, delay: 0 }),
+  "recon waypoint over factory",
+);
+step(recFact, 8);
+assert(siteKnown(sheb, "west"), "recon overflight reveals factory");
+assert(recFact.drones.some((d) => d.live && d.typeId === "recon"), "recon does not kamikaze on factory");
+assert(!recFact.events.some((e) => e.kind === "hit"), "recon does not strike the yard");
+
+const darkHunt = worldOf("north");
+darkHunt.botCd = 1e9;
+darkHunt.botBuildCd = 1e9;
+const dhHq = hq(darkHunt, "west");
+know(darkHunt, "east");
+assert(
+  enqueue(darkHunt, { side: "east", typeId: "fpv", targetSiteId: dhHq.id, targetDroneId: null, delay: 0 }),
+  "inbound FPV for dark intercept",
+);
+step(darkHunt, 0.5);
+const darkPrey = darkHunt.drones.find((d) => d.live && d.side === "east")!;
+assert(Boolean(darkPrey), "dark prey exists");
+assert(!droneKnown(darkHunt, darkPrey, "west"), "no radar → prey unknown");
+assert(
+  !enqueue(darkHunt, { side: "west", typeId: "interceptor", targetSiteId: null, targetDroneId: darkPrey.id, delay: 0 }),
+  "intercept requires radar contact (droneKnown)",
+);
+assert(placeSite(darkHunt, "west", "radar", dhHq.x + 90, dhHq.y - 90), "place radar for contact");
+assert(
+  enqueue(darkHunt, { side: "west", typeId: "interceptor", targetSiteId: null, targetDroneId: darkPrey.id, delay: 0 }) ===
+    droneKnown(darkHunt, darkPrey, "west"),
+  "hunt allowed iff contact",
+);
+
+assert(SITE_TYPES.radar.radarRange > 0, "radarRange > 0");
+assert(!SITE_TYPES.radar.isAa, "radar is not AA");
+assert(SITE_TYPES.radar.aaRange === 0 && SITE_TYPES.radar.aaBurst === 1, "radar has no battery stats");
+
+const radSilent = worldOf("north");
+radSilent.botCd = 1e9;
+radSilent.botBuildCd = 1e9;
+const rsHq = hq(radSilent, "west");
+assert(placeSite(radSilent, "west", "radar", rsHq.x + 90, rsHq.y - 90), "radar for silent AA");
+const radarSite = radSilent.sites.find((s) => s.typeId === "radar" && s.side === "west")!;
+know(radSilent, "east");
+enqueue(radSilent, { side: "east", typeId: "fpv", targetSiteId: rsHq.id, targetDroneId: null, delay: 0 });
+step(radSilent, 2.2);
+assert(
+  !radSilent.events.some((e) => (e.kind === "aa" || e.kind === "gun") && Math.hypot(e.x - radarSite.x, e.y - radarSite.y) < 3),
+  "radar does not fire AA",
+);
+assert(!radSilent.shots.some((s) => s.live), "radar-only map has no tracers");
+
+const fiberJam = worldOf("north");
+fiberJam.botCd = 1e9;
+fiberJam.botBuildCd = 1e9;
+const fjE = hq(fiberJam, "east");
+let ewPlaced = false;
+for (const [dx, dy] of [
+  [-110, 0],
+  [-100, 50],
+  [-90, -60],
+  [0, 110],
+  [80, 90],
+  [-80, 80],
+] as const) {
+  if (placeSite(fiberJam, "east", "ew", fjE.x + dx, fjE.y + dy)) {
+    ewPlaced = true;
+    break;
+  }
+}
+assert(ewPlaced, "place EW on north approach");
+know(fiberJam, "west");
+assert(
+  enqueue(fiberJam, { side: "west", typeId: "fiber", targetSiteId: fjE.id, targetDroneId: null, delay: 0 }),
+  "fiber launch through EW",
+);
+assert(
+  enqueue(fiberJam, { side: "west", typeId: "fpv", targetSiteId: fjE.id, targetDroneId: null, delay: 0 }),
+  "radio FPV launch through EW",
+);
+step(fiberJam, 0.5);
+const fib = fiberJam.drones.find((d) => d.live && d.typeId === "fiber");
+const radio = fiberJam.drones.find((d) => d.live && d.typeId === "fpv");
+assert(Boolean(fib), "fiber airborne");
+assert(Boolean(radio), "radio FPV airborne");
+const fibFuel0 = fib!.fuel;
+step(fiberJam, 1.2);
+assert(fib!.live, "fiber still aloft in EW");
+assert(!fib!.jammed, "fiber jam-proof (ewProfile near 0)");
+assert(fib!.fuel < fibFuel0, "fiber still burns fuel");
+assert(radio!.jammed, "radio FPV is jammed in EW");
+assert(DRONE_TYPES.fiber.ewProfile < 0.12, "fiber ewProfile near 0");
+
+const ePlace = worldOf("front", "recruit", "east");
+assert(canPlace(ePlace, "east", "aa", hq(ePlace, "west").x, hq(ePlace, "west").y) === "side", "east cannot place on west HQ");
+const depthRel = worldOf("depth");
+assert(placeSite(depthRel, "west", "mog", hq(depthRel, "west").x + 130, hq(depthRel, "west").y + 40), "depth mog");
+const depthMog = depthRel.sites.find((s) => s.typeId === "mog" && s.side === "west")!;
+assert(canMove(depthRel, depthMog.id, hq(depthRel, "east").x, hq(depthRel, "east").y) === "side", "relocate across LoC fails on depth");
+
+const wreckYard = worldOf();
+const eastFac = wreckYard.sites.find((s) => s.side === "east" && s.typeId === "factory")!;
+revealSite(eastFac, "west", wreckYard.time);
+eastFac.alive = false;
+eastFac.hp = 0;
+assert(
+  !enqueue(wreckYard, { side: "west", typeId: "loiter", targetSiteId: eastFac.id, targetDroneId: null, delay: 0 }),
+  "cannot launch at factory wreck",
+);
+
+const yards = worldOf();
+for (const s of yards.sites) {
+  if (s.side === "east" && s.typeId !== "hq") {
+    s.alive = false;
+    s.hp = 0;
+  }
+}
+tickWin(yards);
+assert(yards.phase === "play", "killing factory/yards does not win");
+assert(hq(yards, "east").alive, "enemy HQ still standing after yard wipe");
+const eDead = hq(yards, "east");
+eDead.alive = false;
+eDead.hp = 0;
+tickWin(yards);
+assert(yards.phase === "won", "win only when enemy HQ dead");
+
+const ownDown = worldOf();
+const oHq = hq(ownDown, "west");
+oHq.alive = false;
+oHq.hp = 0;
+tickWin(ownDown);
+assert(ownDown.phase === "lost", "own HQ dead is a loss even if enemy HQ lives");
 
 if (fails) {
   console.error(`${fails} failed`);

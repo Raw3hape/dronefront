@@ -65,7 +65,6 @@ export function snapHud(world: World): HudSnap {
     time: world.time,
     phase: world.phase,
     stocks: { ...world.stocks[me] },
-    enemyStocks: { ...world.stocks[them] },
     ownStrategic: ownS,
     enemyStrategic: enemyS,
     ownTotal: ownT,

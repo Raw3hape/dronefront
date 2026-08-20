@@ -1,4 +1,4 @@
-import { DRONE_TYPES, SITE_TYPES } from "@/game/catalog";
+import { DRONE_TYPES, JAM_FUEL, SITE_TYPES } from "@/game/catalog";
 import { angleTo, dist2, inWorld, turnToward } from "./spatial";
 import { nextRng } from "./rng";
 import { burst } from "./fx";
@@ -50,7 +50,7 @@ export function tickFlight(world: World, dt: number): void {
     d.x += d.vx * dt;
     d.y += d.vy * dt;
     let burn = Math.hypot(d.x - x0, d.y - y0);
-    if (d.jammed) burn *= 1.4;
+    if (d.jammed) burn *= JAM_FUEL;
     d.fuel -= burn;
     if (d.fuel <= 0 || (!inWorld(d.x, d.y) && d.age > 1.2)) {
       d.fuel = 0;

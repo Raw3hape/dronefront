@@ -39,7 +39,7 @@ export function tickSpawn(world: World, dt: number): void {
     const refund = () => refundCost(world.stocks[order.side], type.cost);
     if (type.role === "intercept") {
       const prey = world.drones.find((d) => d.live && d.id === order.targetDroneId);
-      if (!prey) {
+      if (!prey || !droneKnown(world, prey, order.side)) {
         refund();
         continue;
       }

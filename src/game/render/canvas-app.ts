@@ -211,12 +211,8 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
         useSession.getState().setUi("play");
       }
     }
-    const map: Record<string, (typeof DRONE_ORDER)[number]> = {
-      Digit1: "fpv", Digit2: "fiber", Digit3: "loiter", Digit4: "lancet",
-      Digit5: "interceptor", Digit6: "recon", Digit7: "bomber", Digit8: "decoy",
-    };
-    const id = map[e.code];
-    if (id) useSession.getState().setSelected(id);
+    const hit = DRONE_ORDER.find((id) => e.code === `Digit${DRONE_TYPES[id].hotkey}`);
+    if (hit) useSession.getState().setSelected(hit);
     if (e.code === "KeyB") {
       const tab = useSession.getState().dockTab;
       useSession.getState().setDockTab(tab === "fortify" ? "sortie" : "fortify");

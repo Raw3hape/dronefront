@@ -65,8 +65,10 @@ Catalog-only. `aa` is the medium SAM. All types carry `value` (strike priority),
 - Recon is waypointed: tap the map to launch, tap the bird then the map to steer
   (same click pattern as relocating ПВО). It loiters at dest until bingo — it does
   not kamikaze.
-- Strike `enqueue` requires `siteKnown`. Interceptor `pickInbound` requires `droneKnown`.
+- Strike `enqueue` requires `siteKnown`. Interceptor launch and in-flight acquire require `droneKnown`.
 - HUD / minimap / dock hide unknown enemy yards and air contacts.
+- Bot inbound census and extra-AA builds use radar picture only. Airfield siting uses known enemy yards, not fogged HQ.
+- `WORLD_W/H` come from `loc.json` (sim constants import the catalog). `EW_IMMUNE` / `JAM_FUEL` live on the drone catalog.
 
 ## Relocate
 

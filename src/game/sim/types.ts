@@ -132,7 +132,6 @@ export interface HudSnap {
   time: number;
   phase: Phase;
   stocks: StockCost;
-  enemyStocks: StockCost;
   ownStrategic: number;
   enemyStrategic: number;
   ownTotal: number;

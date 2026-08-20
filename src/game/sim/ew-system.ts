@@ -1,4 +1,4 @@
-import { DRONE_TYPES, SITE_TYPES } from "@/game/catalog";
+import { DRONE_TYPES, EW_IMMUNE, SITE_TYPES } from "@/game/catalog";
 import { dist2 } from "./spatial";
 import { nextRng } from "./rng";
 import { burst } from "./fx";
@@ -15,7 +15,7 @@ export function tickEw(world: World, dt: number): void {
       if (!d.live || d.side === site.side) continue;
       if (dist2(site.x, site.y, d.x, d.y) > range2) continue;
       const type = DRONE_TYPES[d.typeId];
-      if (type.ewProfile < 0.12) continue;
+      if (type.ewProfile < EW_IMMUNE) continue;
       d.jammed = true;
       const drop = t.ewJam * type.ewProfile * dt;
       if (nextRng(world) < drop) {

@@ -32,6 +32,10 @@ export interface DroneType {
 
 /** Game-scale km per world unit. HUD km = catalog range × this. */
 export const KM_PER_UNIT = 0.5;
+/** ewProfile below this is treated as jam-immune (fiber). */
+export const EW_IMMUNE = 0.12;
+/** Extra fuel burn while jammed. */
+export const JAM_FUEL = 1.4;
 
 export function rangeKm(units: number): number {
   return Math.round(units * KM_PER_UNIT);

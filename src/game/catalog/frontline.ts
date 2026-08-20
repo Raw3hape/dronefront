@@ -79,7 +79,7 @@ export function locLine(theaterId: TheaterId): Pt[] {
 }
 
 function locXAtY(pts: Pt[], y: number): number {
-  if (pts.length < 2) return WORLD_W * 0.5;
+  if (pts.length < 2) return 0;
   // North of the LoC is Russia — do not extend a vertical line through Kursk/Orel.
   if (y < pts[0]!.y) return 0;
   const last = pts[pts.length - 1]!;
@@ -97,9 +97,7 @@ function locXAtY(pts: Pt[], y: number): number {
 }
 
 export function sideAt(theaterId: TheaterId, x: number, y: number): SideId {
-  const pts = locLine(theaterId);
-  if (pts.length < 2) return x < WORLD_W * 0.5 ? "west" : "east";
-  return x < locXAtY(pts, y) ? "west" : "east";
+  return x < locXAtY(locLine(theaterId), y) ? "west" : "east";
 }
 
 /** Project lon/lat; nudge ~0.15° toward own rear until sideAt matches. */

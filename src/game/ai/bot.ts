@@ -3,7 +3,9 @@ import { OTHER_SIDE } from "@/game/catalog/factions";
 import { enqueue } from "@/game/sim/spawn";
 import { placeSite } from "@/game/sim/build";
 import { inRange } from "@/game/sim/range";
-import { MIN_SITE_GAP, WORLD_H, WORLD_W } from "@/game/sim/constants";
+import { inBounds } from "@/game/sim/build";
+import { droneKnown, siteKnown } from "@/game/sim/intel";
+import { MIN_SITE_GAP } from "@/game/sim/constants";
 import { nextRng } from "@/game/sim/rng";
 import { pickInbound, pickStrikeTarget, pickBuildType, pickStrikeType, pickScoutAim } from "./targeting";
 import type { World } from "@/game/sim/types";
@@ -21,7 +23,7 @@ export function tickBot(world: World, dt: number): void {
   if (world.botCd > 0) return;
   world.botCd = diff.botInterval * (0.8 + nextRng(world) * 0.4);
   let inbound = 0;
-  for (const d of world.drones) if (d.live && d.side === world.playerSide) inbound += 1;
+  for (const d of world.drones) if (d.live && d.side !== bot && droneKnown(world, d, bot)) inbound += 1;
   const n = inbound >= 5 ? diff.botBurst + 1 : diff.botBurst;
   for (let i = 0; i < n; i++) {
     const typeId = pickStrikeType(world, bot, inbound);
@@ -90,7 +92,7 @@ function tryBotBuild(world: World, bot: World["playerSide"]): void {
   const open = t.slots.flatMap((sl) => {
     if (sl.side !== bot) return [];
     const p = projectOwned(world.theaterId, sl.lon, sl.lat, sl.side);
-    if (p.x < 48 || p.y < 48 || p.x > WORLD_W - 48 || p.y > WORLD_H - 48) return [];
+    if (!inBounds(p.x, p.y)) return [];
     if (world.sites.some((s) => Math.hypot(s.x - p.x, s.y - p.y) < MIN_SITE_GAP)) return [];
     return [{ name: sl.name, x: p.x, y: p.y }];
   });
@@ -103,9 +105,10 @@ function tryBotBuild(world: World, bot: World["playerSide"]): void {
       sl = open[Math.min(open.length - 1, Math.floor(nextRng(world) * Math.min(3, open.length)))]!;
     }
   } else if (typeId === "airfield") {
-    const hq = world.sites.find((s) => s.alive && s.side !== bot && s.typeId === "hq");
-    if (hq) {
-      open.sort((a, b) => Math.hypot(a.x - hq.x, a.y - hq.y) - Math.hypot(b.x - hq.x, b.y - hq.y));
+    const known = world.sites.filter((s) => s.alive && s.side !== bot && siteKnown(s, bot));
+    const aim = known.find((s) => s.typeId === "hq") ?? known[0];
+    if (aim) {
+      open.sort((a, b) => Math.hypot(a.x - aim.x, a.y - aim.y) - Math.hypot(b.x - aim.x, b.y - aim.y));
       sl = open[Math.min(open.length - 1, Math.floor(nextRng(world) * Math.min(3, open.length)))]!;
     }
   }

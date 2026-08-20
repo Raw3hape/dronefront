@@ -33,7 +33,11 @@ try {
   assert((await page.getByRole("heading", { name: "DRONEFRONT" }).count()) > 0, "title heading");
   await page.screenshot({ path: checkedOutputPath(`${outDir}/title.png`, ["/workspace"]) });
   assert((await page.getByText("Strategic depth").count()) > 0, "depth theater on title");
-
+  assert((await page.getByText("Full theater").count()) > 0, "front theater on title");
+  assert((await page.getByText("Kharkiv — Belgorod").count()) > 0, "north theater on title");
+  assert((await page.getByText("Donbas — Azov").count()) > 0, "south theater on title");
+  const thumbs = page.locator('button img[src*="/game/maps/"]');
+  assert((await thumbs.count()) >= 4, "4 theater thumbs");
   await page.goto(`${base.replace(/\/$/, "")}/play?t=depth&s=west&d=recruit`, {
     waitUntil: "networkidle",
     timeout: 45000,

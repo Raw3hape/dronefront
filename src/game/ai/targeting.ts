@@ -97,7 +97,7 @@ export function pickBuildType(world: World, side: SideId): SiteTypeId {
     if (t.isAirfield) pads += 1;
   }
   let inbound = 0;
-  for (const d of world.drones) if (d.live && d.side !== side) inbound += 1;
+  for (const d of world.drones) if (d.live && d.side !== side && droneKnown(world, d, side)) inbound += 1;
   const r = nextRng(world);
   if (aa < 1) return "mog";
   if (radars < 1) return "radar";

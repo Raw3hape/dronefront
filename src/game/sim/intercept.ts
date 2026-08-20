@@ -1,6 +1,7 @@
 import { DRONE_TYPES } from "@/game/catalog";
 import { dist2 } from "./spatial";
 import { canReachFuel } from "./range";
+import { droneKnown } from "./intel";
 import type { World } from "./types";
 
 export function tickInterceptAcquire(world: World): void {
@@ -18,6 +19,7 @@ export function tickInterceptAcquire(world: World): void {
     let bestD = Infinity;
     for (const o of world.drones) {
       if (!o.live || o.side === d.side) continue;
+      if (!droneKnown(world, o, d.side)) continue;
       if (!canReachFuel(d.fuel, d.x, d.y, o.x, o.y)) continue;
       const dd = dist2(d.x, d.y, o.x, o.y);
       if (dd < bestD) {

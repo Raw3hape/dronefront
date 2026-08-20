@@ -1,5 +1,7 @@
-export const WORLD_W = 2400;
-export const WORLD_H = 1350;
+import loc from "@/game/catalog/loc.json";
+
+export const WORLD_W = loc.world[0];
+export const WORLD_H = loc.world[1];
 export const SIM_DT = 1 / 30;
 export const MAX_DT = 0.1;
 export const MAX_DRONES = 200;
