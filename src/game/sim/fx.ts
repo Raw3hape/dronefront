@@ -1,4 +1,4 @@
-import type { SideId } from "@/game/catalog/ids";
+import type { AaOrdnance, SideId } from "@/game/catalog/ids";
 import type { FxKind, World } from "./types";
 import { allocFx } from "./world";
 import { range } from "./rng";
@@ -43,34 +43,36 @@ export function burst(
   ring.side = side;
 }
 
-export function muzzle(world: World, x: number, y: number, heading: number): void {
+export function muzzle(world: World, x: number, y: number, heading: number, ordnance: AaOrdnance = "missile"): void {
   const bx = Math.cos(heading);
   const by = Math.sin(heading);
+  const gun = ordnance === "gun";
   const flash = allocFx(world);
   if (flash) {
     flash.live = true;
     flash.kind = "flash";
-    flash.x = x + bx * 8;
-    flash.y = y + by * 8;
-    flash.vx = bx * 28;
-    flash.vy = by * 28;
-    flash.maxLife = 0.12;
-    flash.life = 0.12;
-    flash.size = 11;
+    flash.x = x + bx * (gun ? 10 : 8);
+    flash.y = y + by * (gun ? 10 : 8);
+    flash.vx = bx * (gun ? 48 : 28);
+    flash.vy = by * (gun ? 48 : 28);
+    flash.maxLife = gun ? 0.06 : 0.12;
+    flash.life = flash.maxLife;
+    flash.size = gun ? 6 : 11;
     flash.side = null;
   }
-  for (let i = 0; i < 3; i++) {
+  const n = gun ? 5 : 3;
+  for (let i = 0; i < n; i++) {
     const f = allocFx(world);
     if (!f) return;
     f.live = true;
-    f.kind = "smoke";
+    f.kind = gun ? "spark" : "smoke";
     f.x = x + bx * 4;
     f.y = y + by * 4;
-    f.vx = -bx * range(world, 14, 42) + range(world, -12, 12);
-    f.vy = -by * range(world, 14, 42) + range(world, -12, 12);
-    f.maxLife = range(world, 0.28, 0.55);
+    f.vx = (gun ? bx : -bx) * range(world, gun ? 80 : 14, gun ? 220 : 42) + range(world, -12, 12);
+    f.vy = (gun ? by : -by) * range(world, gun ? 80 : 14, gun ? 220 : 42) + range(world, -12, 12);
+    f.maxLife = gun ? range(world, 0.08, 0.16) : range(world, 0.28, 0.55);
     f.life = f.maxLife;
-    f.size = range(world, 4, 10);
+    f.size = gun ? range(world, 1.5, 3.2) : range(world, 4, 10);
     f.side = null;
   }
 }

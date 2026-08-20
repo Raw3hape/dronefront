@@ -30,6 +30,30 @@ function hq(w: World, side: "west" | "east") {
   return w.sites.find((s) => s.side === side && s.typeId === "hq")!;
 }
 
+function placeOnApproach(w: World, typeId: "mog" | "aa", from: { x: number; y: number }, to: { x: number; y: number }): boolean {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const d = Math.hypot(dx, dy) || 1;
+  const ux = dx / d;
+  const uy = dy / d;
+  for (let r = 100; r <= 240; r += 16) {
+    const x = to.x - ux * r;
+    const y = to.y - uy * r;
+    if (placeSite(w, w.playerSide, typeId, x, y)) return true;
+    for (const s of [-48, 48, -80, 80]) {
+      if (placeSite(w, w.playerSide, typeId, x - uy * s, y + ux * s)) return true;
+    }
+  }
+  for (let r = 96; r <= 280; r += 18) {
+    for (let a = 0; a < 16; a++) {
+      const x = to.x + Math.cos((a / 16) * Math.PI * 2) * r;
+      const y = to.y + Math.sin((a / 16) * Math.PI * 2) * r;
+      if (placeSite(w, w.playerSide, typeId, x, y)) return true;
+    }
+  }
+  return false;
+}
+
 function step(w: World, seconds: number): void {
   const n = Math.floor(seconds / SIM_DT);
   for (let i = 0; i < n; i++) tickWorld(w, SIM_DT);
@@ -133,6 +157,13 @@ assert(SITE_TYPES.longsam.aaRange === 400, "longsam 400 wu");
 assert(SITE_TYPES.shorad.aaRange > SITE_TYPES.mog.aaRange, "shorad longer than mog");
 assert(SITE_TYPES.shorad.aaRange < SITE_TYPES.aa.aaRange, "shorad shorter than SAM");
 assert(DRONE_TYPES.loiter.speed < 70, `loiter speed < 70, got ${DRONE_TYPES.loiter.speed}`);
+assert(SITE_TYPES.mog.aaOrdnance === "gun", "mog fires guns");
+assert(SITE_TYPES.mog.aaBurst === 3, "mog burst is three bullets");
+assert(SITE_TYPES.mog.aaSpeed < SITE_TYPES.aa.aaSpeed, "gun slower than SAM so tracers read");
+assert(SITE_TYPES.shorad.aaOrdnance === "missile", "shorad missiles");
+assert(SITE_TYPES.shorad.aaBurst === 1, "SAM volley is one");
+assert(SITE_TYPES.aa.aaOrdnance === "missile", "SAM missiles");
+assert(SITE_TYPES.longsam.aaOrdnance === "missile", "longsam missiles");
 
 for (const id of ["front", "north", "south"] as const) {
   const seeded = worldOf(id);
@@ -154,6 +185,49 @@ assert(Math.hypot(mog.x - destX, mog.y - destY) > 2, "moveSite does not teleport
 assert(mog.destX === destX && mog.destY === destY, "dest set");
 step(rel, 3);
 assert(Math.hypot(mog.x - destX, mog.y - destY) <= 2, "tickRelocate eventually arrives");
+
+const guns = worldOf("north");
+const gHq = hq(guns, "west");
+const gEast = hq(guns, "east");
+assert(placeOnApproach(guns, "mog", gEast, gHq), "place mog for gun fire");
+const mogGun = guns.sites.find((s) => s.typeId === "mog" && s.side === "west")!;
+assert(
+  enqueue(guns, { side: "east", typeId: "fpv", targetSiteId: gHq.id, targetDroneId: null, delay: 0 }),
+  "east FPV inbound on north for mog",
+);
+let maxGunLive = 0;
+let sawGunSprite = false;
+for (let i = 0; i < 360; i++) {
+  tickWorld(guns, SIM_DT);
+  const liveGun = guns.shots.filter((s) => s.live && s.kind === "gun").length;
+  maxGunLive = Math.max(maxGunLive, liveGun);
+  if (guns.shots.some((s) => s.live && s.kind === "missile" && Math.hypot(s.x - mogGun.x, s.y - mogGun.y) < 18)) {
+    sawGunSprite = true;
+  }
+}
+assert(guns.events.some((e) => e.kind === "gun"), "mog emits gun events");
+assert(
+  !guns.events.some((e) => e.kind === "aa" && Math.hypot(e.x - mogGun.x, e.y - mogGun.y) < 3),
+  "mog does not emit SAM events",
+);
+assert(maxGunLive >= 3, `mog volley puts 3 tracers in flight, got ${maxGunLive}`);
+assert(!sawGunSprite, "mog never spawned a SAM sprite");
+
+const samW = worldOf("north");
+const sHq = hq(samW, "west");
+const sEast = hq(samW, "east");
+assert(placeOnApproach(samW, "aa", sEast, sHq), "place SAM");
+const sam = samW.sites.find((s) => s.typeId === "aa" && s.side === "west")!;
+assert(
+  enqueue(samW, { side: "east", typeId: "loiter", targetSiteId: sHq.id, targetDroneId: null, delay: 0 }),
+  "Geran inbound for SAM",
+);
+step(samW, 10);
+assert(samW.events.some((e) => e.kind === "aa" && Math.hypot(e.x - sam.x, e.y - sam.y) < 3), "SAM emits aa events");
+assert(
+  !samW.events.some((e) => e.kind === "gun" && Math.hypot(e.x - sam.x, e.y - sam.y) < 3),
+  "SAM does not emit gun events",
+);
 
 const idle = worldOf("front", "operator", "west", 11);
 step(idle, 200);

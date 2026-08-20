@@ -45,6 +45,11 @@ export function sfxAa(): void {
   beep(980, 0.04, "square", 0.03);
 }
 
+export function sfxGun(): void {
+  beep(1860, 0.022, "square", 0.035);
+  beep(420, 0.03, "sawtooth", 0.02);
+}
+
 export function sfxWin(): void {
   beep(440, 0.2, "triangle", 0.08);
   beep(660, 0.28, "triangle", 0.07);

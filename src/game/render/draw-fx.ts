@@ -18,6 +18,30 @@ export function drawShots(
     const speed = Math.hypot(s.vx, s.vy) || 1;
     const ux = s.vx / speed;
     const uy = s.vy / speed;
+    const p = worldToScreen(cam, viewW, viewH, s.x, s.y);
+    if (s.kind === "gun") {
+      const tail = worldToScreen(cam, viewW, viewH, s.x - ux * 22, s.y - uy * 22);
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "rgba(255,164,64,0.28)";
+      ctx.lineWidth = Math.max(3.4, 4.4 * cam.zoom);
+      ctx.beginPath();
+      ctx.moveTo(tail.x, tail.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      ctx.strokeStyle = "#ffb347";
+      ctx.lineWidth = Math.max(1.5, 2.1 * cam.zoom);
+      ctx.beginPath();
+      ctx.moveTo(tail.x, tail.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      ctx.fillStyle = "#fff4c8";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(1.5, 2.2 * cam.zoom), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      continue;
+    }
     for (let i = 3; i >= 1; i--) {
       const tp = worldToScreen(cam, viewW, viewH, s.x - ux * i * 10, s.y - uy * i * 10);
       ctx.globalAlpha = 0.12 * (4 - i);
@@ -27,7 +51,6 @@ export function drawShots(
       ctx.fill();
     }
     ctx.globalAlpha = 1;
-    const p = worldToScreen(cam, viewW, viewH, s.x, s.y);
     const ang = Math.atan2(s.vy, s.vx);
     const img = atlas.missile[Math.floor(world.time * 12) % atlas.missile.length];
     const size = Math.max(10, 18 * cam.zoom);

@@ -31,7 +31,8 @@ export function tickCombat(world: World, dt: number): void {
     }
     for (const d of world.drones) {
       if (!d.live || d.side === s.side) continue;
-      const r = DRONE_TYPES[d.typeId].radius + 6;
+      const pad = s.kind === "gun" ? 3 : 6;
+      const r = DRONE_TYPES[d.typeId].radius + pad;
       if (dist2(s.x, s.y, d.x, d.y) > r * r) continue;
       d.hp -= s.dmg;
       s.live = false;

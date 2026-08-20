@@ -5,7 +5,7 @@ import { pickInbound } from "@/game/ai/targeting";
 import { MAX_DT, SIM_DT } from "@/game/sim/constants";
 import { dist2 } from "@/game/sim/spatial";
 import type { MatchConfig, World } from "@/game/sim/types";
-import { sfxAa, sfxHit, sfxLaunch, sfxLose, sfxWin, setMuted, unlockAudio } from "@/game/audio/engine";
+import { sfxAa, sfxGun, sfxHit, sfxLaunch, sfxLose, sfxWin, setMuted, unlockAudio } from "@/game/audio/engine";
 import { useSession } from "@/game/session/store";
 import { pushRun } from "@/game/save/persist";
 import { createPointer, pinchDistance } from "@/game/input/pointer";
@@ -245,6 +245,7 @@ export function startGame(canvas: HTMLCanvasElement, cfg: MatchConfig): Handle {
         for (let i = evN; i < world.events.length; i++) {
           const ev = world.events[i]!;
           if (ev.kind === "aa") sfxAa();
+          if (ev.kind === "gun") sfxGun();
           if (ev.kind === "hit" || ev.kind === "site" || ev.kind === "bingo") sfxHit();
           if (ev.kind === "kill") addShake(2.2);
           if (ev.kind === "site") addShake(4.5);

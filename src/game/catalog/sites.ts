@@ -1,4 +1,4 @@
-import type { SiteTypeId, StockId } from "./ids";
+import type { AaOrdnance, SiteTypeId, StockId } from "./ids";
 import type { StockCost } from "./drones";
 
 export interface SiteType {
@@ -20,6 +20,8 @@ export interface SiteType {
   aaRate: number;
   aaDamage: number;
   aaSpeed: number;
+  aaOrdnance: AaOrdnance;
+  aaBurst: number;
   ewRange: number;
   ewSlow: number;
   ewJam: number;
@@ -34,9 +36,19 @@ function zero(): StockCost {
 
 const QUIET: Pick<
   SiteType,
-  "aaRange" | "aaRate" | "aaDamage" | "aaSpeed" | "ewRange" | "ewSlow" | "ewJam" | "mobile" | "relocateSpeed"
+  | "aaRange"
+  | "aaRate"
+  | "aaDamage"
+  | "aaSpeed"
+  | "aaOrdnance"
+  | "aaBurst"
+  | "ewRange"
+  | "ewSlow"
+  | "ewJam"
+  | "mobile"
+  | "relocateSpeed"
 > = {
-  aaRange: 0, aaRate: 0, aaDamage: 0, aaSpeed: 0,
+  aaRange: 0, aaRate: 0, aaDamage: 0, aaSpeed: 0, aaOrdnance: "missile", aaBurst: 1,
   ewRange: 0, ewSlow: 0, ewJam: 0, mobile: false, relocateSpeed: 0,
 };
 
@@ -96,9 +108,9 @@ export const SITE_TYPES: Record<SiteTypeId, SiteType> = {
   rail: yard("rail", "Rail yard", "Logistics spine. Feeds everything slowly.", 190, 40, 74, {
     parts: 1.4, warheads: 0.6, fuel: 0.5,
   }, { parts: 28, fuel: 4, warheads: 2, electronics: 4 }, 0.9),
-  mog: battery("mog", "МОГ", "Mobile fire group vs FPV. Cheap guns — relocate onto the approach.", 95, 85, 2.4, 7, 280, {
+  mog: battery("mog", "МОГ", "Mobile fire group vs FPV. Autocannon — relocate onto the approach.", 95, 85, 4.4, 1.6, 340, {
     parts: 10, fuel: 2, warheads: 4, electronics: 4,
-  }, true, 92, 0.5, { radius: 26, drawSize: 48 }),
+  }, true, 92, 0.5, { radius: 26, drawSize: 48, aaOrdnance: "gun", aaBurst: 3 }),
   shorad: battery("shorad", "SHORAD", "Pantsir / Gepard class. Guns and missiles for the mid ring.", 125, 150, 1.6, 10, 360, {
     parts: 14, fuel: 3, warheads: 6, electronics: 7,
   }, true, 54, 0.62, { radius: 30, drawSize: 54 }),

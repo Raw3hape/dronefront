@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Magenta chroma + edge flood of leftover studio/dirt backdrops + crop."""
+"""Magenta chroma + magenta-spill despill + edge flood + crop."""
 from __future__ import annotations
 
 from collections import deque
@@ -16,20 +16,43 @@ PUB_E = PUB / "explode"
 PUB_M = PUB / "missile"
 
 
-def key_magenta(arr: np.ndarray, thresh: int = 55) -> np.ndarray:
+def key_magenta(arr: np.ndarray, thresh: int = 62) -> np.ndarray:
     r, g, b, a = arr[..., 0], arr[..., 1], arr[..., 2], arr[..., 3]
-    mag = (np.abs(r.astype(np.int16) - 255) < thresh) & (np.abs(b.astype(np.int16) - 255) < thresh) & (g < 90)
-    mag |= (r > 190) & (b > 190) & (g < 130) & (r.astype(np.int16) + b.astype(np.int16) - 2 * g.astype(np.int16) > 160)
+    mag = (np.abs(r.astype(np.int16) - 255) < thresh) & (np.abs(b.astype(np.int16) - 255) < thresh) & (g < 110)
+    mag |= (r > 170) & (b > 170) & (g < 150) & (r.astype(np.int16) + b.astype(np.int16) - 2 * g.astype(np.int16) > 120)
     arr = arr.copy()
     arr[..., 3] = np.where(mag, 0, a)
-    fringe = (arr[..., 3] > 0) & (arr[..., 0] > 160) & (arr[..., 2] > 160) & (arr[..., 1] < 140)
-    arr[..., 0] = np.where(fringe, np.minimum(arr[..., 0], arr[..., 1] + 40), arr[..., 0])
-    arr[..., 2] = np.where(fringe, np.minimum(arr[..., 2], arr[..., 1] + 40), arr[..., 2])
+    return arr
+
+
+def despill(arr: np.ndarray) -> np.ndarray:
+    r = arr[..., 0].astype(np.int16)
+    g = arr[..., 1].astype(np.int16)
+    b = arr[..., 2].astype(np.int16)
+    a = arr[..., 3]
+    spill = (a > 0) & (r > 90) & (b > 90) & ((r + b - 2 * g) > 28)
+    arr[..., 0] = np.where(spill, np.minimum(r, g + 16), r).astype(np.uint8)
+    arr[..., 2] = np.where(spill, np.minimum(b, g + 16), b).astype(np.uint8)
+    return arr
+
+
+def punch_fringe(arr: np.ndarray) -> np.ndarray:
+    """Drop thin chroma halos that sit on the transparent edge."""
+    a = arr[..., 3]
+    r, g, b = arr[..., 0].astype(np.int16), arr[..., 1].astype(np.int16), arr[..., 2].astype(np.int16)
+    empty = a <= 8
+    neigh = np.zeros(a.shape, dtype=bool)
+    neigh[:-1] |= empty[1:]
+    neigh[1:] |= empty[:-1]
+    neigh[:, :-1] |= empty[:, 1:]
+    neigh[:, 1:] |= empty[:, :-1]
+    halo = neigh & (a > 0) & (a < 90)
+    halo |= neigh & (a > 0) & (r > 140) & (b > 140) & ((r + b - 2 * g) > 40)
+    arr[..., 3] = np.where(halo, 0, a)
     return arr
 
 
 def punch_edge_bg(arr: np.ndarray, tol: float = 34) -> np.ndarray:
-    """If corners are opaque and similar, flood that backdrop from the edges."""
     h, w = arr.shape[:2]
     patches = [arr[0:12, 0:12], arr[0:12, -12:], arr[-12:, 0:12], arr[-12:, -12:]]
     if not all(float(p[..., 3].mean()) > 180 for p in patches):
@@ -42,7 +65,7 @@ def punch_edge_bg(arr: np.ndarray, tol: float = 34) -> np.ndarray:
         *[(0, x) for x in range(w)],
         *[(h - 1, x) for x in range(w)],
         *[(y, 0) for y in range(h)],
-        *[(y, w - 1) for y in range(h)],
+        *[(y, w - 1) for y in range(w)],
     ):
         if arr[y, x, 3] > 8 and dist[y, x] < tol and not seen[y, x]:
             seen[y, x] = True
@@ -71,6 +94,8 @@ def clean(im: Image.Image) -> Image.Image:
     arr = np.asarray(im.convert("RGBA")).copy()
     arr = key_magenta(arr)
     arr = punch_edge_bg(arr)
+    arr = despill(arr)
+    arr = punch_fringe(arr)
     arr = zero_keyed(arr)
     return Image.fromarray(arr.astype(np.uint8), "RGBA")
 
@@ -126,7 +151,6 @@ def grid2(name: str, dest_dir: Path, prefix: str) -> None:
 
 
 def polish_public() -> None:
-    """Second pass on every production sprite (yards included)."""
     for p in sorted(PUB.rglob("*.png")):
         im = clean(Image.open(p))
         im.save(p, optimize=True)
@@ -136,10 +160,13 @@ def main() -> None:
     drones = ["fpv", "fiber", "loiter", "lancet", "interceptor", "recon", "bomber", "decoy"]
     for n in drones:
         one(n, PUB_D / f"{n}.png", 256)
-    one("mog", PUB_S / "mog.png", 280)
-    one("shorad", PUB_S / "shorad.png", 280)
-    one("aa", PUB_S / "aa.png", 280)
-    one("longsam", PUB_S / "longsam.png", 300)
+    sites = {
+        "mog": 280, "shorad": 280, "aa": 280, "longsam": 300, "ew": 256,
+        "hq": 256, "factory": 256, "airfield": 256, "refinery": 256,
+        "power": 256, "ammo": 256, "fuel": 256, "rail": 256,
+    }
+    for n, size in sites.items():
+        one(n, PUB_S / f"{n}.png", size)
     grid2("explode", PUB_E, "e")
     grid2("missile", PUB_M, "m")
     polish_public()

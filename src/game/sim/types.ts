@@ -1,9 +1,9 @@
-import type { DifficultyId, DroneTypeId, SideId, SiteTypeId, TheaterId } from "@/game/catalog/ids";
+import type { AaOrdnance, DifficultyId, DroneTypeId, SideId, SiteTypeId, TheaterId } from "@/game/catalog/ids";
 import type { StockCost } from "@/game/catalog/drones";
 
 export type Phase = "play" | "paused" | "won" | "lost";
 export type DroneLife = "cruise" | "hunt" | "dead";
-export type ShotKind = "aa";
+export type ShotKind = AaOrdnance;
 export type FxKind = "burst" | "smoke" | "spark" | "flash" | "ring";
 
 export interface SiteState {
@@ -80,7 +80,7 @@ export interface LaunchOrder {
 }
 
 export interface SimEvent {
-  kind: "hit" | "kill" | "site" | "launch" | "mark" | "aa" | "jam" | "build" | "bingo";
+  kind: "hit" | "kill" | "site" | "launch" | "mark" | "aa" | "gun" | "jam" | "build" | "bingo";
   side: SideId;
   x: number;
   y: number;

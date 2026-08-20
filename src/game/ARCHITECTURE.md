@@ -17,6 +17,7 @@ Do not invent parallel types. Import from `@/game/catalog` and `@/game/sim/types
 - World is a plain serializable object (`World` in `types.ts`).
 - LoC is lon/lat in `catalog/loc.json` (baker + sim share it), projected per theater bbox.
 - North of Kupyansk the line is the internationally recognized UA–RU border. North of that vertex is east (Russia) — never a vertical cut through Kursk/Orel.
+- Sprites are orthographic top-down (drones nose-up, sites roof-plan, missiles +X) on keyed transparency. Bake with `scripts/chroma-sprites.py` from `assets/sprites/new/<id>/raw-sheet.png`.
 
 ## Sides
 
@@ -41,8 +42,8 @@ Do not invent parallel types. Import from `@/game/catalog` and `@/game/sim/types
 Catalog-only. `aa` is the medium SAM. All types carry `value` (strike priority),
 `mobile`, `relocateSpeed` (wu/s, 0 = cannot move).
 
-- `mog` — МОГ, cheap mobile fire group vs FPV (short range, high rate).
-- `shorad` — Pantsir/Gepard class, mid ring, mobile.
+- `mog` — МОГ, cheap mobile fire group vs FPV. `aaOrdnance: "gun"`, `aaBurst: 3` (code-drawn tracers, not SAM sprites).
+- `shorad` — Pantsir/Gepard class, mid ring, mobile, missiles.
 - `aa` — medium SAM, slow relocate.
 - `longsam` — Patriot/S-300 class, long ring, fixed (`mobile: false`).
 
@@ -66,7 +67,9 @@ Catalog-only. `aa` is the medium SAM. All types carry `value` (strike priority),
 - Catalog `range` is max path in world units. Spawn `fuel = range`.
 - Launch blocked if nearest pad → target > range × 0.9 (`sim/range.ts`).
 - Bingo crash at fuel 0. Jammed radio drones burn 1.4×.
-- AA shot ttl = aaRange / aaSpeed (missiles die on the battery ring).
+- AA shot ttl = aaRange / aaSpeed × 1.2. `aaOrdnance` on the catalog type picks
+  `gun` (code-drawn tracers) or `missile` (sprite). `aaBurst` is the volley size
+  (МОГ fires three bullets per trigger). No type-id branches in render.
 - Player ПВО uses catalog stats; `botAccuracy` / `aaMul` apply only to the bot.
 - HUD km = range × `KM_PER_UNIT` (0.5).
 - Drone catalog speeds are ~0.58× the old hop so the map reads as an operational theater.

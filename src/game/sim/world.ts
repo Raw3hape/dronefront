@@ -30,7 +30,7 @@ function poolShots(): ShotState[] {
   return Array.from({ length: MAX_SHOTS }, () => ({
     id: 0,
     live: false,
-    kind: "aa",
+    kind: "missile",
     side: "west",
     x: 0,
     y: 0,
