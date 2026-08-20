@@ -18,14 +18,15 @@ export function Hud({ onPause }: { onPause: () => void }) {
   const me = FACTIONS[playerSide];
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-      <div className="pointer-events-auto max-w-[min(100%,36rem)] rounded-md border border-border bg-bg/85 px-3 py-2 backdrop-blur-sm">
+      <div className="pointer-events-auto max-w-[min(calc(100%-5.5rem),36rem)] rounded-sm border border-border bg-bg/92 px-3 py-2">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className={`font-mono text-2xs tracking-wide uppercase ${playerSide === "west" ? "text-ua" : "text-ru"}`}>
+          <span className={`font-mono text-2xs tracking-[0.18em] uppercase ${playerSide === "west" ? "text-ua" : "text-ru"}`}>
             {me.short}
           </span>
           <span className="font-mono text-sm tabular-nums">{clock(hud.time)}</span>
-          <span className="text-xs text-muted">
-            Yards {hud.ownStrategic}/{hud.ownTotal}
+          <span className="font-mono text-2xs tracking-[0.14em] text-subtle uppercase">Yards</span>
+          <span className="font-mono text-xs tabular-nums text-muted">
+            {hud.ownStrategic}/{hud.ownTotal}
           </span>
           <span className={`font-mono text-xs tabular-nums ${hud.ownHq < 0.4 ? "text-danger" : "text-muted"}`}>
             HQ {Math.round(hud.ownHq * 100)}%
@@ -38,10 +39,12 @@ export function Hud({ onPause }: { onPause: () => void }) {
           ) : (
             <span className="font-mono text-xs tabular-nums text-subtle">—</span>
           )}
-          <span className="text-xs text-muted">In {hud.inbound}</span>
-          <span className="text-xs text-muted">Air {hud.airborne}</span>
+          <span className="font-mono text-2xs tracking-[0.14em] text-subtle uppercase">Cnt</span>
+          <span className="font-mono text-xs tabular-nums text-muted">{hud.inbound}</span>
+          <span className="font-mono text-2xs tracking-[0.14em] text-subtle uppercase">Air</span>
+          <span className="font-mono text-xs tabular-nums text-muted">{hud.airborne}</span>
         </div>
-        <div className="mt-1 flex flex-wrap gap-x-3 font-mono text-micro tabular-nums text-subtle">
+        <div className="mt-1 flex flex-nowrap gap-x-3 overflow-x-auto font-mono text-micro tabular-nums text-subtle">
           {STOCK_ORDER.map((id) => (
             <span key={id}>
               {STOCK_LABEL[id]} {Math.floor(hud.stocks[id])}

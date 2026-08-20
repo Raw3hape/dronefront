@@ -23,6 +23,7 @@ Do not invent parallel types. Import from `@/game/catalog` and `@/game/sim/types
   (Moscow, St. Petersburg, Urals). Kaliningrad is an east exclave. Never a vertical cut
   through Kursk/Orel.
 - Sprites are orthographic top-down (drones nose-up, sites roof-plan, missiles +X) on keyed transparency. Bake with `scripts/chroma-sprites.py` from `assets/sprites/new/<id>/raw-sheet.png`.
+- FX sheets: explode 3×3 (9 frames), missile 2×4 (8), muzzle 2×2 (4). Rotor discs are code-drawn from catalog `rotor`.
 
 ## Sides
 

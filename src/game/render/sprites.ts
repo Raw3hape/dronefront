@@ -33,6 +33,7 @@ export interface Atlas {
   sites: Record<string, HTMLImageElement>;
   explode: HTMLImageElement[];
   missile: HTMLImageElement[];
+  muzzle: HTMLImageElement[];
   maps: Record<string, HTMLImageElement>;
   ready: boolean;
 }
@@ -50,11 +51,12 @@ function loadImg(src: string): Promise<HTMLImageElement> {
 export async function loadAtlas(): Promise<Atlas> {
   const drones: Atlas["drones"] = {};
   const sites: Atlas["sites"] = {};
-  const [dImgs, sImgs, exp, mis, maps] = await Promise.all([
+  const [dImgs, sImgs, exp, mis, muz, maps] = await Promise.all([
     Promise.all(DRONE_KEYS.map((k) => loadImg(assetUrl(`/game/sprites/drones/${k}.png`)))),
     Promise.all(SITE_KEYS.map((k) => loadImg(assetUrl(`/game/sprites/sites/${k}.png`)))),
-    Promise.all([0, 1, 2, 3].map((i) => loadImg(assetUrl(`/game/sprites/explode/e${i}.png`)))),
-    Promise.all([0, 1, 2, 3].map((i) => loadImg(assetUrl(`/game/sprites/missile/m${i}.png`)))),
+    Promise.all([0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => loadImg(assetUrl(`/game/sprites/explode/e${i}.png`)))),
+    Promise.all([0, 1, 2, 3, 4, 5, 6, 7].map((i) => loadImg(assetUrl(`/game/sprites/missile/m${i}.png`)))),
+    Promise.all([0, 1, 2, 3].map((i) => loadImg(assetUrl(`/game/sprites/muzzle/m${i}.png`)))),
     Promise.all(MAP_KEYS.map((k) => loadImg(assetUrl(`/game/maps/${k}.jpg`)))),
   ]);
   DRONE_KEYS.forEach((k, i) => {
@@ -67,5 +69,5 @@ export async function loadAtlas(): Promise<Atlas> {
   MAP_KEYS.forEach((k, i) => {
     mapRec[k] = maps[i]!;
   });
-  return { drones, sites, explode: exp, missile: mis, maps: mapRec, ready: true };
+  return { drones, sites, explode: exp, missile: mis, muzzle: muz, maps: mapRec, ready: true };
 }

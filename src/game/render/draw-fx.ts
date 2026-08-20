@@ -40,6 +40,14 @@ export function drawShots(
       ctx.beginPath();
       ctx.arc(p.x, p.y, Math.max(1.5, 2.2 * cam.zoom), 0, Math.PI * 2);
       ctx.fill();
+      const muz = atlas.muzzle[Math.floor(world.time * 24) % Math.max(1, atlas.muzzle.length)];
+      if (muz) {
+        const ms = Math.max(10, 16 * cam.zoom);
+        ctx.translate(tail.x, tail.y);
+        ctx.rotate(Math.atan2(s.vy, s.vx));
+        ctx.globalAlpha = 0.9;
+        ctx.drawImage(muz, -ms * 0.2, -ms / 2, ms, ms);
+      }
       ctx.restore();
       continue;
     }
@@ -53,7 +61,7 @@ export function drawShots(
     }
     ctx.globalAlpha = 1;
     const ang = Math.atan2(s.vy, s.vx);
-    const img = atlas.missile[Math.floor(world.time * 12) % atlas.missile.length];
+    const img = atlas.missile[Math.floor(world.time * 16) % Math.max(1, atlas.missile.length)];
     const size = Math.max(10, 18 * cam.zoom);
     ctx.save();
     ctx.translate(p.x, p.y);
@@ -81,7 +89,8 @@ export function drawFx(
     const t = 1 - f.life / f.maxLife;
     const a = Math.max(0, f.life / f.maxLife);
     if (f.kind === "burst") {
-      const frame = atlas.explode[Math.min(3, Math.floor(t * 4))];
+      const n = Math.max(1, atlas.explode.length);
+      const frame = atlas.explode[Math.min(n - 1, Math.floor(t * n))];
       const size = (f.size + 40) * cam.zoom;
       ctx.globalAlpha = a;
       if (frame) ctx.drawImage(frame, p.x - size / 2, p.y - size / 2, size, size);

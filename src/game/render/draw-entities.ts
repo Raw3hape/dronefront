@@ -75,6 +75,23 @@ export function drawSites(
       ctx.setLineDash([]);
     }
     ctx.restore();
+    if (t.isRadar && site.alive) {
+      const ang = world.time * 1.15;
+      const rad = t.radarRange * cam.zoom;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.arc(p.x, p.y, rad, ang, ang + 0.55);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(141,163,122,0.1)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(141,163,122,0.28)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
     const bw = size * 0.85;
     const bh = Math.max(3, 3.5 * cam.zoom);
     ctx.fillStyle = "rgba(10,10,11,0.75)";
@@ -187,7 +204,21 @@ export function drawDrones(
       ctx.closePath();
       ctx.fill();
     }
+    drawRotor(ctx, type.rotor, type.id === "recon" ? -0.32 : 0.28, size, d.age);
     ctx.restore();
+    if (d.side !== world.playerSide) {
+      const b = size * 0.42;
+      ctx.strokeStyle = "rgba(230,228,216,0.7)";
+      ctx.lineWidth = Math.max(1, 1.2 * cam.zoom);
+      ctx.beginPath();
+      ctx.moveTo(p.x - b, p.y - b + 4);
+      ctx.lineTo(p.x - b, p.y - b);
+      ctx.lineTo(p.x - b + 4, p.y - b);
+      ctx.moveTo(p.x + b - 4, p.y - b);
+      ctx.lineTo(p.x + b, p.y - b);
+      ctx.lineTo(p.x + b, p.y - b + 4);
+      ctx.stroke();
+    }
     const bw = size * 0.7;
     const bh = Math.max(2, 2.4 * cam.zoom);
     ctx.fillStyle = "rgba(10,10,11,0.7)";
@@ -195,4 +226,38 @@ export function drawDrones(
     ctx.fillStyle = low ? "#c45c4a" : "#e8d6a8";
     ctx.fillRect(p.x - bw / 2, p.y + size * 0.42, bw * Math.max(0, d.fuel / Math.max(1, d.maxFuel)), bh);
   }
+}
+
+function drawRotor(
+  ctx: CanvasRenderingContext2D,
+  kind: "quad" | "prop" | "none",
+  oy: number,
+  size: number,
+  age: number,
+): void {
+  if (kind === "none") return;
+  ctx.save();
+  ctx.globalAlpha = 0.4;
+  ctx.strokeStyle = "rgba(230,228,216,0.85)";
+  ctx.lineWidth = Math.max(0.8, size * 0.035);
+  const spin = age * 22;
+  if (kind === "quad") {
+    const r = size * 0.16;
+    const d = size * 0.28;
+    for (const [ox, oyq] of [
+      [-d, -d],
+      [d, -d],
+      [-d, d],
+      [d, d],
+    ]) {
+      ctx.beginPath();
+      ctx.ellipse(ox, oyq, r, r * 0.35, spin, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  } else {
+    ctx.beginPath();
+    ctx.ellipse(0, size * oy, size * 0.16, size * 0.045, spin, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
 }

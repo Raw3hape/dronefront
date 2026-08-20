@@ -37,7 +37,7 @@ export function LaunchDock({ handle }: { handle: Handle | null }) {
     world && selected && !hunt ? sites.filter((s) => siteInRange(world, world.playerSide, selected, s.id)).length : 0;
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-10 border-t border-border bg-bg/90 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-sm">
+    <div className="absolute inset-x-0 bottom-0 z-10 border-t border-border bg-bg/92 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <div className="flex gap-1 px-3 pt-2">
         <Tab on={sortie} onClick={() => setDockTab("sortie")} label="Sortie" hint="1–8" />
         <Tab on={!sortie} onClick={() => setDockTab("fortify")} label="Fortify" hint="B · ПВО / РЭБ" />
@@ -91,7 +91,7 @@ export function LaunchDock({ handle }: { handle: Handle | null }) {
                   type="button"
                   disabled={!ok}
                   onClick={() => setSelected(id)}
-                  className={`flex min-h-11 min-w-32 shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-left transition-colors duration-(--motion-quick) ${
+                  className={`flex min-h-11 min-w-32 shrink-0 items-center gap-2 rounded-sm border px-2.5 py-1.5 text-left transition-colors duration-(--motion-quick) ${
                     on ? "border-border-strong bg-surface text-fg" : "border-border text-muted"
                   } disabled:opacity-35`}
                 >
@@ -122,7 +122,7 @@ export function LaunchDock({ handle }: { handle: Handle | null }) {
                   type="button"
                   disabled={!ok}
                   onClick={() => setBuildType(id)}
-                  className={`flex min-h-11 min-w-28 shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-left transition-colors duration-(--motion-quick) ${
+                  className={`flex min-h-11 min-w-28 shrink-0 items-center gap-2 rounded-sm border px-2.5 py-1.5 text-left transition-colors duration-(--motion-quick) ${
                     on ? "border-border-strong bg-surface text-fg" : "border-border text-muted"
                   } disabled:opacity-35`}
                 >
@@ -150,7 +150,7 @@ export function LaunchDock({ handle }: { handle: Handle | null }) {
           <button
             type="button"
             onClick={togglePackage}
-            className={`min-h-11 min-w-24 shrink-0 rounded-md border px-3 py-1.5 text-left text-sm transition-colors duration-(--motion-quick) ${
+            className={`min-h-11 min-w-24 shrink-0 rounded-sm border px-3 py-1.5 text-left text-sm transition-colors duration-(--motion-quick) ${
               packageMode ? "border-border-strong bg-surface text-fg" : "border-border text-muted"
             }`}
           >
@@ -177,7 +177,7 @@ function Tab({ on, onClick, label, hint }: { on: boolean; onClick: () => void; l
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-10 flex-1 rounded-md border px-3 text-sm ${
+      className={`min-h-10 flex-1 rounded-sm border px-3 text-sm ${
         on ? "border-border-strong bg-surface text-fg" : "border-border text-muted"
       }`}
     >

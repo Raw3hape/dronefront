@@ -28,6 +28,7 @@ export interface DroneType {
   drawSize: number;
   hotkey: string;
   spotRange: number;
+  rotor: "quad" | "prop" | "none";
 }
 
 /** Game-scale km per world unit. HUD km = catalog range × this. */
@@ -63,6 +64,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     drawSize: 22,
     hotkey: "1",
     spotRange: 0,
+    rotor: "quad",
   },
   fiber: {
     id: "fiber",
@@ -85,6 +87,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     drawSize: 24,
     hotkey: "2",
     spotRange: 0,
+    rotor: "quad",
   },
   loiter: {
     id: "loiter",
@@ -107,6 +110,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     drawSize: 36,
     hotkey: "3",
     spotRange: 0,
+    rotor: "prop",
   },
   lancet: {
     id: "lancet",
@@ -129,6 +133,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     drawSize: 28,
     hotkey: "4",
     spotRange: 0,
+    rotor: "prop",
   },
   interceptor: {
     id: "interceptor",
@@ -151,6 +156,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     drawSize: 28,
     hotkey: "5",
     spotRange: 0,
+    rotor: "quad",
   },
   recon: {
     id: "recon",
@@ -173,6 +179,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     drawSize: 32,
     hotkey: "6",
     spotRange: 140,
+    rotor: "prop",
   },
   bomber: {
     id: "bomber",
@@ -195,6 +202,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     drawSize: 40,
     hotkey: "7",
     spotRange: 0,
+    rotor: "quad",
   },
   decoy: {
     id: "decoy",
@@ -217,6 +225,7 @@ export const DRONE_TYPES: Record<DroneTypeId, DroneType> = {
     drawSize: 24,
     hotkey: "8",
     spotRange: 0,
+    rotor: "prop",
   },
 };
 

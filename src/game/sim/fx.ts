@@ -23,7 +23,7 @@ export function burst(
     f.y = y;
     f.vx = Math.cos(a) * sp;
     f.vy = Math.sin(a) * sp;
-    f.maxLife = kind === "burst" ? range(world, 0.28, 0.55) : range(world, 0.35, 0.9);
+    f.maxLife = kind === "burst" ? range(world, 0.5, 0.78) : range(world, 0.35, 0.9);
     f.life = f.maxLife;
     f.size = kind === "burst" ? range(world, 16, 34) : range(world, 3, 10);
     f.side = side;

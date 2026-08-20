@@ -16,10 +16,10 @@ PUB_E = PUB / "explode"
 PUB_M = PUB / "missile"
 
 
-def key_magenta(arr: np.ndarray, thresh: int = 62) -> np.ndarray:
+def key_magenta(arr: np.ndarray, thresh: int = 88) -> np.ndarray:
     r, g, b, a = arr[..., 0], arr[..., 1], arr[..., 2], arr[..., 3]
-    mag = (np.abs(r.astype(np.int16) - 255) < thresh) & (np.abs(b.astype(np.int16) - 255) < thresh) & (g < 110)
-    mag |= (r > 170) & (b > 170) & (g < 150) & (r.astype(np.int16) + b.astype(np.int16) - 2 * g.astype(np.int16) > 120)
+    mag = (np.abs(r.astype(np.int16) - 255) < thresh) & (np.abs(b.astype(np.int16) - 255) < thresh) & (g < 170)
+    mag |= (r > 150) & (b > 150) & (g < 180) & (r.astype(np.int16) + b.astype(np.int16) - 2 * g.astype(np.int16) > 70)
     arr = arr.copy()
     arr[..., 3] = np.where(mag, 0, a)
     return arr
@@ -135,6 +135,26 @@ def one(name: str, dest: Path, size: int = 256) -> None:
 
 
 def grid2(name: str, dest_dir: Path, prefix: str) -> None:
+    grid(name, dest_dir, prefix, 2, 2, 192)
+
+
+def grid(name: str, dest_dir: Path, prefix: str, rows: int, cols: int, size: int = 192) -> None:
+    raw = ROOT / name / "raw-sheet.png"
+    if not raw.exists():
+        raw = ROOT / name / "raw-sheet.jpg"
+    im = clean(Image.open(raw))
+    w, h = im.size
+    cw, ch = w // cols, h // rows
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    i = 0
+    for r in range(rows):
+        for c in range(cols):
+            cell = im.crop((c * cw, r * ch, (c + 1) * cw, (r + 1) * ch))
+            save_sq(crop(clean(cell), 0.08), dest_dir / f"{prefix}{i}.png", size)
+            i += 1
+
+
+def polish_public() -> None:
     raw = ROOT / name / "raw-sheet.png"
     im = clean(Image.open(raw))
     w, h = im.size
@@ -166,9 +186,11 @@ def main() -> None:
         "power": 256, "ammo": 256, "fuel": 256, "rail": 256,
     }
     for n, size in sites.items():
-        one(n, PUB_S / f"{n}.png", size)
-    grid2("explode", PUB_E, "e")
-    grid2("missile", PUB_M, "m")
+        if (ROOT / n / "raw-sheet.jpg").exists() or (ROOT / n / "raw-sheet.png").exists():
+            one(n, PUB_S / f"{n}.png", size)
+    grid("explode", PUB_E, "e", 3, 3, 192)
+    grid("missile", PUB_M, "m", 2, 4, 192)
+    grid("muzzle", PUB / "muzzle", "m", 2, 2, 160)
     polish_public()
 
 
